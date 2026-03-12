@@ -14,7 +14,7 @@ func Middleware(handler http.Handler, registry *Registry) http.Handler {
 		var requestBody []byte
 		if r.Body != nil {
 			requestBody, _ = io.ReadAll(r.Body)
-			r.Body.Close()
+			_ = r.Body.Close()
 			r.Body = io.NopCloser(bytes.NewReader(requestBody))
 		}
 
@@ -31,7 +31,7 @@ func Middleware(handler http.Handler, registry *Registry) http.Handler {
 		}
 		w.WriteHeader(result.StatusCode)
 		responseBody := rec.Body.Bytes()
-		w.Write(responseBody)
+		_, _ = w.Write(responseBody)
 
 		// Store the interaction
 		registry.Record(Interaction{

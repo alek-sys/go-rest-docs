@@ -19,7 +19,7 @@ func TestHandler(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	srv := httptest.NewServer(Handler(mux))
@@ -29,7 +29,7 @@ func TestHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	interactions := DefaultRegistry().All()
 	if len(interactions) != 1 {
@@ -51,13 +51,13 @@ func TestGenerateSpec(t *testing.T) {
 		switch r.Method {
 		case http.MethodGet:
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode([]map[string]interface{}{
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{"id": 1, "name": "Alice"},
 			})
 		case http.MethodPost:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]interface{}{"id": 2, "name": "Bob"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": 2, "name": "Bob"})
 		}
 	})
 
@@ -69,7 +69,7 @@ func TestGenerateSpec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET error: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// POST /users
 	body := strings.NewReader(`{"name":"Bob"}`)
@@ -77,7 +77,7 @@ func TestGenerateSpec(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST error: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	var buf bytes.Buffer
 	err = GenerateSpec(&buf, Info{Title: "Test API", Version: "1.0.0"})
@@ -127,7 +127,7 @@ func TestWriteSpecIfEnabled_Enabled(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"healthy":true}`))
+		_, _ = w.Write([]byte(`{"healthy":true}`))
 	})
 
 	srv := httptest.NewServer(Handler(mux))
@@ -137,7 +137,7 @@ func TestWriteSpecIfEnabled_Enabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET error: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Set output flag to a temp file
 	tmpDir := t.TempDir()
@@ -176,7 +176,7 @@ func TestWriteSpecIfEnabled_FlagOverrides(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	srv := httptest.NewServer(Handler(mux))
@@ -186,7 +186,7 @@ func TestWriteSpecIfEnabled_FlagOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET error: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	tmpDir := t.TempDir()
 	outPath := filepath.Join(tmpDir, "openapi.yaml")

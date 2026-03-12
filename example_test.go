@@ -20,13 +20,13 @@ func ExampleHandler() {
 		switch r.Method {
 		case http.MethodGet:
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode([]map[string]string{
+			_ = json.NewEncoder(w).Encode([]map[string]string{
 				{"id": "1", "name": "Fido", "species": "dog"},
 			})
 		case http.MethodPost:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]string{"id": "2", "name": "Whiskers", "species": "cat"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "2", "name": "Whiskers", "species": "cat"})
 		}
 	})
 
@@ -35,13 +35,13 @@ func ExampleHandler() {
 	defer srv.Close()
 
 	// Make test requests (these get recorded)
-	http.Get(srv.URL + "/pets")
-	http.Post(srv.URL+"/pets", "application/json",
+	_, _ = http.Get(srv.URL + "/pets")
+	_, _ = http.Post(srv.URL+"/pets", "application/json",
 		strings.NewReader(`{"name":"Whiskers","species":"cat"}`))
 
 	// Generate the spec
 	var buf bytes.Buffer
-	gorestdocs.GenerateSpec(&buf, gorestdocs.Info{
+	_ = gorestdocs.GenerateSpec(&buf, gorestdocs.Info{
 		Title:   "Pet Store API",
 		Version: "1.0.0",
 	})

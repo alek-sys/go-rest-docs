@@ -109,10 +109,10 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 
 ## Validation
 
-- [ ] Manual test: create a sample REST API with 3-4 endpoints, write tests using the middleware, run with `-gorestdocs.output=api.yaml`, verify the YAML is a valid OpenAPI 3.1 spec
-- [ ] Run full test suite: `go test ./...`
-- [ ] Run linter: `golangci-lint run`
-- [ ] Verify test coverage meets 80%+
+- [x] Manual test: create a sample REST API with 3-4 endpoints, write tests using the middleware, run with `-gorestdocs.output=api.yaml`, verify the YAML is a valid OpenAPI 3.1 spec
+- [x] Run full test suite: `go test ./...`
+- [x] Run linter: `golangci-lint run`
+- [x] Verify test coverage meets 80%+
 
 ## Post-completion
 

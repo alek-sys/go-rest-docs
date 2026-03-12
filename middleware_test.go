@@ -13,7 +13,7 @@ func TestMiddlewareRecordsGETRequest(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"users":["alice","bob"]}`))
+		_, _ = w.Write([]byte(`{"users":["alice","bob"]}`))
 	})
 
 	srv := httptest.NewServer(Middleware(handler, registry))
@@ -23,7 +23,7 @@ func TestMiddlewareRecordsGETRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 
 	// Verify response was passed through correctly
@@ -70,7 +70,7 @@ func TestMiddlewareRecordsJSONPostRequest(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		w.Write(body)
+		_, _ = w.Write(body)
 	})
 
 	srv := httptest.NewServer(Middleware(handler, registry))
@@ -81,7 +81,7 @@ func TestMiddlewareRecordsJSONPostRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("expected status 201, got %d", resp.StatusCode)
@@ -115,7 +115,7 @@ func TestMiddlewareRecordsFormEncodedRequest(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
-		w.Write(body)
+		_, _ = w.Write(body)
 	})
 
 	srv := httptest.NewServer(Middleware(handler, registry))
@@ -126,7 +126,7 @@ func TestMiddlewareRecordsFormEncodedRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	all := registry.All()
 	if len(all) != 1 {
@@ -156,7 +156,7 @@ func TestMiddlewareRecordsEmptyBodyRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected status 204, got %d", resp.StatusCode)
@@ -186,15 +186,15 @@ func TestMiddlewareMultipleRequests(t *testing.T) {
 	registry := NewRegistry()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	srv := httptest.NewServer(Middleware(handler, registry))
 	defer srv.Close()
 
-	http.Get(srv.URL + "/a")
-	http.Get(srv.URL + "/b")
-	http.Get(srv.URL + "/c")
+	_, _ = http.Get(srv.URL + "/a")
+	_, _ = http.Get(srv.URL + "/b")
+	_, _ = http.Get(srv.URL + "/c")
 
 	all := registry.All()
 	if len(all) != 3 {
@@ -213,7 +213,7 @@ func TestMiddlewarePreservesHandlerBehavior(t *testing.T) {
 		w.Header().Set("X-Echo", string(body))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("handled"))
+		_, _ = w.Write([]byte("handled"))
 	})
 
 	srv := httptest.NewServer(Middleware(handler, registry))
@@ -223,7 +223,7 @@ func TestMiddlewarePreservesHandlerBehavior(t *testing.T) {
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Verify the handler could read the body (middleware restored it)
 	if resp.Header.Get("X-Echo") != "hello" {
