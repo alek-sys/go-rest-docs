@@ -340,6 +340,32 @@ func TestExtractPathParams(t *testing.T) {
 	}
 }
 
+func TestGroupByPattern_DifferentResourcesSameIDs(t *testing.T) {
+	// Regression: paths like /users/1, /posts/1, /comments/2 should NOT
+	// be subgrouped by ID value, which would incorrectly produce /{param0}/1.
+	interactions := []Interaction{
+		{Method: "GET", Path: "/users/1", ResponseStatus: 200},
+		{Method: "GET", Path: "/posts/1", ResponseStatus: 200},
+		{Method: "GET", Path: "/comments/2", ResponseStatus: 200},
+	}
+	result := groupByPattern(interactions)
+
+	// Each path should fall through to per-path fallback since they are
+	// different resources that happen to share ID values.
+	for pattern := range result {
+		if strings.Contains(pattern, "{param") && strings.Contains(pattern, "/1") {
+			t.Errorf("subgrouping incorrectly hardcoded ID as static: pattern %q", pattern)
+		}
+	}
+	if len(result) != 3 {
+		var patterns []string
+		for k := range result {
+			patterns = append(patterns, k)
+		}
+		t.Errorf("expected 3 separate patterns (per-path fallback), got %d: %v", len(result), patterns)
+	}
+}
+
 // helpers
 
 func specPaths(spec OpenAPI) []string {

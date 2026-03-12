@@ -54,9 +54,7 @@ func inferObject(obj map[string]interface{}) Schema {
 
 	for k, v := range obj {
 		properties[k] = inferValue(v)
-		if v != nil {
-			required = append(required, k)
-		}
+		required = append(required, k)
 	}
 
 	sort.Strings(required)

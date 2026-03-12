@@ -303,29 +303,45 @@ func groupByPattern(interactions []Interaction) map[string][]Interaction {
 			}
 		}
 
-		// Check if all paths fit this single pattern (same static segments)
-		allFit := hasStatic
-		if allFit {
-			for _, p := range paths {
-				for i := 0; i < segCount; i++ {
-					if !varying[i] && p.segments[i] != paths[0].segments[i] {
-						allFit = false
-						break
-					}
-				}
-				if !allFit {
-					break
-				}
-			}
-		}
-
-		if allFit {
+		if hasStatic {
 			pattern := "/" + strings.Join(patternParts, "/")
 			result := make(map[string][]Interaction)
 			for _, p := range paths {
 				result[pattern] = append(result[pattern], p.ix)
 			}
 			return result
+		}
+
+		// All segments vary across all paths: try to sub-group by finding
+		// a segment position whose values cluster paths together.
+		// Only consider positions where values look like resource names
+		// (not IDs), to avoid treating coincidental ID values as static.
+		for i := 0; i < segCount; i++ {
+			hasIDValue := false
+			for _, p := range paths {
+				if looksLikeID(p.segments[i]) {
+					hasIDValue = true
+					break
+				}
+			}
+			if hasIDValue {
+				continue
+			}
+			subGroups := make(map[string][]Interaction)
+			for _, p := range paths {
+				subGroups[p.segments[i]] = append(subGroups[p.segments[i]], p.ix)
+			}
+			// Useful split: multiple groups AND fewer groups than paths
+			// (meaning at least some paths share a value at this position).
+			if len(subGroups) > 1 && len(subGroups) < len(paths) {
+				result := make(map[string][]Interaction)
+				for _, group := range subGroups {
+					for pat, ixs := range groupByPattern(group) {
+						result[pat] = append(result[pat], ixs...)
+					}
+				}
+				return result
+			}
 		}
 	}
 
@@ -335,6 +351,30 @@ func groupByPattern(interactions []Interaction) map[string][]Interaction {
 		result[p.ix.Path] = append(result[p.ix.Path], p.ix)
 	}
 	return result
+}
+
+// looksLikeID returns true if a path segment looks like a resource ID
+// (purely numeric, or UUID-like) rather than a resource name.
+func looksLikeID(segment string) bool {
+	if segment == "" {
+		return false
+	}
+	// Purely numeric
+	allDigits := true
+	for _, c := range segment {
+		if c < '0' || c > '9' {
+			allDigits = false
+			break
+		}
+	}
+	if allDigits {
+		return true
+	}
+	// UUID-like: 8-4-4-4-12 hex pattern
+	if len(segment) == 36 && segment[8] == '-' && segment[13] == '-' && segment[18] == '-' && segment[23] == '-' {
+		return true
+	}
+	return false
 }
 
 // extractPathParams returns the parameter names from a path pattern.
