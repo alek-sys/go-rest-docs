@@ -13,9 +13,13 @@ func Middleware(handler http.Handler, registry *Registry) http.Handler {
 		// Capture request body
 		var requestBody []byte
 		if r.Body != nil {
-			requestBody, _ = io.ReadAll(r.Body)
+			var err error
+			requestBody, err = io.ReadAll(r.Body)
 			_ = r.Body.Close()
 			r.Body = io.NopCloser(bytes.NewReader(requestBody))
+			if err != nil {
+				requestBody = nil
+			}
 		}
 
 		// Record response using httptest.ResponseRecorder

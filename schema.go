@@ -89,6 +89,28 @@ func inferArray(arr []interface{}) Schema {
 	return s
 }
 
+// primaryType extracts the main (non-"null") type string from a Schema,
+// handling both string and []string/[]interface{} type values.
+func primaryType(s Schema) string {
+	switch t := s["type"].(type) {
+	case string:
+		return t
+	case []string:
+		for _, v := range t {
+			if v != "null" {
+				return v
+			}
+		}
+	case []interface{}:
+		for _, v := range t {
+			if str, ok := v.(string); ok && str != "null" {
+				return str
+			}
+		}
+	}
+	return ""
+}
+
 // MergeSchemas merges two schemas into one that accepts values valid under either.
 // This is used when multiple interactions hit the same endpoint to create a union schema.
 func MergeSchemas(a, b Schema) Schema {
@@ -99,8 +121,9 @@ func MergeSchemas(a, b Schema) Schema {
 		return a
 	}
 
-	typeA, _ := a["type"].(string)
-	typeB, _ := b["type"].(string)
+	typeA := primaryType(a)
+	typeB := primaryType(b)
+	nullable := isNullable(a) || isNullable(b)
 
 	// If one is null, make the other nullable
 	if typeA == "null" && typeB != "null" {
@@ -113,7 +136,7 @@ func MergeSchemas(a, b Schema) Schema {
 	// Integer and number are compatible: number is the wider type
 	if (typeA == "integer" && typeB == "number") || (typeA == "number" && typeB == "integer") {
 		result := Schema{"type": "number"}
-		if isNullable(a) || isNullable(b) {
+		if nullable {
 			result["type"] = []string{"number", "null"}
 		}
 		return result
@@ -127,13 +150,21 @@ func MergeSchemas(a, b Schema) Schema {
 	// Same type: merge details
 	switch typeA {
 	case "object":
-		return mergeObjects(a, b)
+		merged := mergeObjects(a, b)
+		if nullable && !isNullable(merged) {
+			return makeNullable(merged)
+		}
+		return merged
 	case "array":
-		return mergeArrays(a, b)
+		merged := mergeArrays(a, b)
+		if nullable && !isNullable(merged) {
+			return makeNullable(merged)
+		}
+		return merged
 	default:
 		// Primitive same type - preserve nullable if either is nullable
 		result := Schema{"type": typeA}
-		if isNullable(a) || isNullable(b) {
+		if nullable {
 			result["type"] = []string{typeA, "null"}
 		}
 		return result
@@ -238,12 +269,15 @@ func makeNullable(s Schema) Schema {
 	if s == nil {
 		return Schema{"type": "null"}
 	}
+	if isNullable(s) {
+		return s
+	}
 	result := make(Schema)
 	for k, v := range s {
 		result[k] = v
 	}
 	// OpenAPI 3.1 uses JSON Schema 2020-12 type arrays for nullable
-	currentType, _ := s["type"].(string)
+	currentType := primaryType(s)
 	if currentType != "" {
 		result["type"] = []string{currentType, "null"}
 	} else {

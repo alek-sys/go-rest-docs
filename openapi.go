@@ -24,11 +24,14 @@ type Info struct {
 
 // PathItem describes the operations available on a single path.
 type PathItem struct {
-	Get    *Operation `yaml:"get,omitempty" json:"get,omitempty"`
-	Post   *Operation `yaml:"post,omitempty" json:"post,omitempty"`
-	Put    *Operation `yaml:"put,omitempty" json:"put,omitempty"`
-	Patch  *Operation `yaml:"patch,omitempty" json:"patch,omitempty"`
-	Delete *Operation `yaml:"delete,omitempty" json:"delete,omitempty"`
+	Get     *Operation `yaml:"get,omitempty" json:"get,omitempty"`
+	Post    *Operation `yaml:"post,omitempty" json:"post,omitempty"`
+	Put     *Operation `yaml:"put,omitempty" json:"put,omitempty"`
+	Patch   *Operation `yaml:"patch,omitempty" json:"patch,omitempty"`
+	Delete  *Operation `yaml:"delete,omitempty" json:"delete,omitempty"`
+	Head    *Operation `yaml:"head,omitempty" json:"head,omitempty"`
+	Options *Operation `yaml:"options,omitempty" json:"options,omitempty"`
+	Trace   *Operation `yaml:"trace,omitempty" json:"trace,omitempty"`
 }
 
 // Operation describes a single API operation on a path.
@@ -387,15 +390,19 @@ func buildOperation(g interactionGroup) *Operation {
 	hasRequestBody := 0
 	totalInteractions := len(g.interactions)
 	requestContentType := "application/json"
+	requestContentTypeSet := false
 	for _, ix := range g.interactions {
 		if len(ix.RequestBody) > 0 {
 			hasRequestBody++
-			if ct := ix.RequestHeaders.Get("Content-Type"); ct != "" {
-				// Use the first non-empty Content-Type; strip parameters
-				if idx := strings.Index(ct, ";"); idx != -1 {
-					ct = strings.TrimSpace(ct[:idx])
+			if !requestContentTypeSet {
+				if ct := ix.RequestHeaders.Get("Content-Type"); ct != "" {
+					// Use the first non-empty Content-Type; strip parameters
+					if idx := strings.Index(ct, ";"); idx != -1 {
+						ct = strings.TrimSpace(ct[:idx])
+					}
+					requestContentType = ct
+					requestContentTypeSet = true
 				}
-				requestContentType = ct
 			}
 			s := InferSchema(ix.RequestBody)
 			if s != nil {
@@ -474,5 +481,11 @@ func setOperation(item *PathItem, method string, op *Operation) {
 		item.Patch = op
 	case "DELETE":
 		item.Delete = op
+	case "HEAD":
+		item.Head = op
+	case "OPTIONS":
+		item.Options = op
+	case "TRACE":
+		item.Trace = op
 	}
 }

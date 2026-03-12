@@ -61,7 +61,11 @@ func (pp *PathPatterns) Match(path string) (string, bool) {
 
 // splitPath splits a path into segments, ignoring leading/trailing slashes.
 func splitPath(path string) []string {
-	return strings.Split(strings.Trim(path, "/"), "/")
+	trimmed := strings.Trim(path, "/")
+	if trimmed == "" {
+		return nil
+	}
+	return strings.Split(trimmed, "/")
 }
 
 // matchSegments checks if concrete path segments match a pattern's segments.
