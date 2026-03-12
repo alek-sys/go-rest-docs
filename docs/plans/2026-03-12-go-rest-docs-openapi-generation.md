@@ -46,11 +46,11 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 - Create: `middleware.go`
 - Create: `middleware_test.go`
 
-- [ ] Implement `Middleware(handler http.Handler, registry *Registry) http.Handler`
-- [ ] Middleware captures full request (method, path, query, headers, body) and response (status, headers, body) using a ResponseRecorder wrapper
-- [ ] Write tests: use `httptest.NewServer` with middleware, make requests, verify interactions are recorded accurately
-- [ ] Test with various content types (JSON, form-encoded, empty body)
-- [ ] Run `go test ./...` - must pass before task 3
+- [x] Implement `Middleware(handler http.Handler, registry *Registry) http.Handler`
+- [x] Middleware captures full request (method, path, query, headers, body) and response (status, headers, body) using a ResponseRecorder wrapper
+- [x] Write tests: use `httptest.NewServer` with middleware, make requests, verify interactions are recorded accurately
+- [x] Test with various content types (JSON, form-encoded, empty body)
+- [x] Run `go test ./...` - must pass before task 3
 
 ### Task 3: JSON Schema inference
 
