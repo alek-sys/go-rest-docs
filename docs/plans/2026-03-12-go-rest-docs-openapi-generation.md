@@ -34,11 +34,11 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 - Create: `recorder.go` (interaction types)
 - Create: `recorder_test.go`
 
-- [ ] Initialize go module as `github.com/alek-sys/go-rest-docs`
-- [ ] Define `Interaction` struct: Method, Path, QueryParams, RequestHeaders, RequestBody, ResponseStatus, ResponseHeaders, ResponseBody
-- [ ] Define `Registry` (thread-safe collection of interactions, using `sync.Mutex`)
-- [ ] Write tests for Registry: add interactions, retrieve by path, concurrent access
-- [ ] Run `go test ./...` - must pass before task 2
+- [x] Initialize go module as `github.com/alek-sys/go-rest-docs`
+- [x] Define `Interaction` struct: Method, Path, QueryParams, RequestHeaders, RequestBody, ResponseStatus, ResponseHeaders, ResponseBody
+- [x] Define `Registry` (thread-safe collection of interactions, using `sync.Mutex`)
+- [x] Write tests for Registry: add interactions, retrieve by path, concurrent access
+- [x] Run `go test ./...` - must pass before task 2
 
 ### Task 2: Recording middleware
 
