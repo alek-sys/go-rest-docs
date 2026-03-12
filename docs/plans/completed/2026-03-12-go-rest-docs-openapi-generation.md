@@ -116,5 +116,5 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 
 ## Post-completion
 
-- [ ] Update README.md with usage instructions and example
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Update README.md with usage instructions and example
+- [x] Move this plan to `docs/plans/completed/`
