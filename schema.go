@@ -143,7 +143,11 @@ func MergeSchemas(a, b Schema) Schema {
 
 	// Different non-null types: use oneOf to represent the union
 	if typeA != typeB {
-		return Schema{"oneOf": []Schema{a, b}}
+		variants := []Schema{a, b}
+		if nullable {
+			variants = append(variants, Schema{"type": "null"})
+		}
+		return Schema{"oneOf": variants}
 	}
 
 	// Same type: merge details
@@ -279,6 +283,11 @@ func makeNullable(s Schema) Schema {
 	currentType := primaryType(s)
 	if currentType != "" {
 		result["type"] = []string{currentType, "null"}
+	} else if oneOf, ok := result["oneOf"]; ok {
+		// For oneOf schemas, append a null variant instead of setting type
+		if variants, ok := oneOf.([]Schema); ok {
+			result["oneOf"] = append(variants, Schema{"type": "null"})
+		}
 	} else {
 		result["type"] = []string{"null"}
 	}
