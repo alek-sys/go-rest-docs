@@ -58,12 +58,12 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 - Create: `schema.go`
 - Create: `schema_test.go`
 
-- [ ] Implement `InferSchema(data []byte)` that produces a JSON Schema map from a JSON body
-- [ ] Support: string, number, integer, boolean, null, object (with properties), array (with item schema)
-- [ ] Handle nested objects and arrays of objects
-- [ ] When multiple interactions hit the same endpoint, merge schemas (union of properties, nullable if sometimes missing)
-- [ ] Write tests: primitives, nested objects, arrays, merging of two schemas, empty body returns nil
-- [ ] Run `go test ./...` - must pass before task 4
+- [x] Implement `InferSchema(data []byte)` that produces a JSON Schema map from a JSON body
+- [x] Support: string, number, integer, boolean, null, object (with properties), array (with item schema)
+- [x] Handle nested objects and arrays of objects
+- [x] When multiple interactions hit the same endpoint, merge schemas (union of properties, nullable if sometimes missing)
+- [x] Write tests: primitives, nested objects, arrays, merging of two schemas, empty body returns nil
+- [x] Run `go test ./...` - must pass before task 4
 
 ### Task 4: OpenAPI spec builder
 
