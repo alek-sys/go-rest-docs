@@ -71,12 +71,12 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 - Create: `openapi.go`
 - Create: `openapi_test.go`
 
-- [ ] Define OpenAPI 3.1 structs: OpenAPI, Info, PathItem, Operation, Parameter, RequestBody, Response, MediaType, Schema
-- [ ] Implement `BuildSpec(registry *Registry, info Info) OpenAPI` - groups interactions by path+method, infers parameters from path and query, builds request/response schemas
-- [ ] Detect path parameters from URL patterns (e.g. `/users/123` vs `/users/456` -> `/users/{id}`) using a configurable path pattern or auto-detection
-- [ ] Implement MarshalYAML output using `yaml.v3`
-- [ ] Write tests: single endpoint, multiple endpoints, endpoint with path params, endpoint with query params, request and response bodies
-- [ ] Run `go test ./...` - must pass before task 5
+- [x] Define OpenAPI 3.1 structs: OpenAPI, Info, PathItem, Operation, Parameter, RequestBody, Response, MediaType, Schema
+- [x] Implement `BuildSpec(registry *Registry, info Info) OpenAPI` - groups interactions by path+method, infers parameters from path and query, builds request/response schemas
+- [x] Detect path parameters from URL patterns (e.g. `/users/123` vs `/users/456` -> `/users/{id}`) using a configurable path pattern or auto-detection
+- [x] Implement MarshalYAML output using `yaml.v3`
+- [x] Write tests: single endpoint, multiple endpoints, endpoint with path params, endpoint with query params, request and response bodies
+- [x] Run `go test ./...` - must pass before task 5
 
 ### Task 5: Test integration and flag-based generation
 
