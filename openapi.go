@@ -73,7 +73,14 @@ type interactionGroup struct {
 }
 
 // BuildSpec converts all recorded interactions into an OpenAPI 3.1 specification.
-func BuildSpec(registry *Registry, info Info) OpenAPI {
+// It uses the provided PathPatterns (if any) to map concrete paths to parameterized patterns.
+// If patterns is nil, automatic path parameter detection is used as a fallback.
+func BuildSpec(registry *Registry, info Info, opts ...BuildOption) OpenAPI {
+	cfg := buildConfig{}
+	for _, o := range opts {
+		o(&cfg)
+	}
+
 	spec := OpenAPI{
 		OpenAPI: "3.1.0",
 		Info:    info,
@@ -85,7 +92,7 @@ func BuildSpec(registry *Registry, info Info) OpenAPI {
 		return spec
 	}
 
-	groups := groupInteractions(interactions)
+	groups := groupInteractions(interactions, cfg.patterns)
 
 	for _, g := range groups {
 		pathItem := spec.Paths[g.pattern]
@@ -97,15 +104,35 @@ func BuildSpec(registry *Registry, info Info) OpenAPI {
 	return spec
 }
 
+// BuildOption configures BuildSpec behavior.
+type BuildOption func(*buildConfig)
+
+type buildConfig struct {
+	patterns *PathPatterns
+}
+
+// WithPatterns provides explicit path patterns to use when building the spec.
+func WithPatterns(pp *PathPatterns) BuildOption {
+	return func(c *buildConfig) {
+		c.patterns = pp
+	}
+}
+
 // MarshalYAML marshals the OpenAPI spec to YAML bytes.
 func MarshalYAML(spec OpenAPI) ([]byte, error) {
 	return yaml.Marshal(spec)
 }
 
 // groupInteractions groups interactions by path pattern and method.
-// It detects path parameters by finding segments that vary across interactions
-// with the same structure.
-func groupInteractions(interactions []Interaction) []interactionGroup {
+// If patterns is provided, it uses registered patterns first, falling back
+// to automatic detection for unmatched paths.
+func groupInteractions(interactions []Interaction, patterns *PathPatterns) []interactionGroup {
+	// If user-registered patterns exist, apply them first
+	if patterns != nil && len(patterns.All()) > 0 {
+		return groupWithPatterns(interactions, patterns)
+	}
+
+	// Fallback: automatic detection
 	// Group by method + path segment count
 	type groupKey struct {
 		method   string
@@ -123,6 +150,54 @@ func groupInteractions(interactions []Interaction) []interactionGroup {
 	for _, ixs := range byStructure {
 		subgroups := detectPathPatterns(ixs)
 		result = append(result, subgroups...)
+	}
+
+	// Sort for deterministic output
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].pattern != result[j].pattern {
+			return result[i].pattern < result[j].pattern
+		}
+		return result[i].method < result[j].method
+	})
+
+	return result
+}
+
+// groupWithPatterns groups interactions using user-registered path patterns.
+// Interactions that don't match any registered pattern fall back to auto-detection.
+func groupWithPatterns(interactions []Interaction, patterns *PathPatterns) []interactionGroup {
+	type groupKey struct {
+		pattern string
+		method  string
+	}
+
+	grouped := make(map[groupKey][]Interaction)
+	var unmatched []Interaction
+
+	for _, ix := range interactions {
+		if pattern, ok := patterns.Match(ix.Path); ok {
+			key := groupKey{pattern: pattern, method: ix.Method}
+			grouped[key] = append(grouped[key], ix)
+		} else {
+			unmatched = append(unmatched, ix)
+		}
+	}
+
+	var result []interactionGroup
+	for key, ixs := range grouped {
+		pathParams := extractPathParams(key.pattern)
+		result = append(result, interactionGroup{
+			method:       key.method,
+			pattern:      key.pattern,
+			pathParams:   pathParams,
+			interactions: ixs,
+		})
+	}
+
+	// Auto-detect patterns for unmatched interactions
+	if len(unmatched) > 0 {
+		autoGroups := groupInteractions(unmatched, nil)
+		result = append(result, autoGroups...)
 	}
 
 	// Sort for deterministic output
@@ -191,12 +266,6 @@ func groupByPattern(interactions []Interaction) map[string][]Interaction {
 	// with the same "static prefix pattern"
 	// Simple approach: group paths that share the same static segments
 	// and differ only in parameter segments
-
-	// First, find which segment positions vary
-	// We group paths by their "static skeleton"
-	type skeleton struct {
-		parts string // static segments joined, with * for varying
-	}
 
 	// Try to find a single pattern that fits all paths
 	if segCount > 0 && len(paths) > 1 {

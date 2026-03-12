@@ -101,11 +101,11 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 - Create: `patterns.go`
 - Create: `patterns_test.go`
 
-- [ ] Allow users to register path patterns (e.g. `/users/{id}`) so the builder can correctly parameterize paths instead of guessing
-- [ ] Implement automatic path parameter detection as fallback (group similar paths, detect varying segments)
-- [ ] Add option to set spec title, version, description via flags or API
-- [ ] Write tests for pattern matching and auto-detection
-- [ ] Run `go test ./...` - must pass
+- [x] Allow users to register path patterns (e.g. `/users/{id}`) so the builder can correctly parameterize paths instead of guessing
+- [x] Implement automatic path parameter detection as fallback (group similar paths, detect varying segments)
+- [x] Add option to set spec title, version, description via flags or API
+- [x] Write tests for pattern matching and auto-detection
+- [x] Run `go test ./...` - must pass
 
 ## Validation
 

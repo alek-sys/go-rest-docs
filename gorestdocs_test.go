@@ -171,6 +171,62 @@ func TestWriteSpecIfEnabled_Enabled(t *testing.T) {
 	outputFlag = ""
 }
 
+func TestWriteSpecIfEnabled_FlagOverrides(t *testing.T) {
+	ResetDefaultRegistry()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	srv := httptest.NewServer(Handler(mux))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/ping")
+	if err != nil {
+		t.Fatalf("GET error: %v", err)
+	}
+	resp.Body.Close()
+
+	tmpDir := t.TempDir()
+	outPath := filepath.Join(tmpDir, "openapi.yaml")
+	outputFlag = outPath
+	titleFlag = "Overridden Title"
+	versionFlag = "2.0.0"
+	descriptionFlag = "Overridden description"
+
+	err = WriteSpecIfEnabled(Info{Title: "Original", Version: "1.0.0"})
+	if err != nil {
+		t.Fatalf("WriteSpecIfEnabled error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output file: %v", err)
+	}
+
+	var spec OpenAPI
+	if err := yaml.Unmarshal(data, &spec); err != nil {
+		t.Fatalf("failed to parse YAML: %v", err)
+	}
+
+	if spec.Info.Title != "Overridden Title" {
+		t.Errorf("expected title 'Overridden Title', got %s", spec.Info.Title)
+	}
+	if spec.Info.Version != "2.0.0" {
+		t.Errorf("expected version '2.0.0', got %s", spec.Info.Version)
+	}
+	if spec.Info.Description != "Overridden description" {
+		t.Errorf("expected description 'Overridden description', got %s", spec.Info.Description)
+	}
+
+	// Reset flags
+	outputFlag = ""
+	titleFlag = ""
+	versionFlag = ""
+	descriptionFlag = ""
+}
+
 func TestResetDefaultRegistry(t *testing.T) {
 	defaultRegistry.Record(Interaction{Method: "GET", Path: "/test"})
 	if len(DefaultRegistry().All()) == 0 {
