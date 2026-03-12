@@ -17,6 +17,7 @@ package api_test
 
 import (
     "bytes"
+    "flag"
     "net/http"
     "net/http/httptest"
     "os"
@@ -44,6 +45,7 @@ func TestListPets(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+    flag.Parse()
     code := m.Run()
 
     // Write the spec after all tests complete
@@ -83,7 +85,7 @@ gorestdocs.RegisterPatterns("/users/{id}", "/users/{userId}/posts/{postId}")
 
 ### Auto-detection
 
-If no patterns are registered, the builder automatically detects path parameters by grouping similar paths and identifying segments that vary (e.g., `/users/123` and `/users/456` become `/users/{id}`).
+If no patterns are registered, the builder automatically detects path parameters by grouping similar paths and identifying segments that vary (e.g., `/users/123` and `/users/456` become `/users/{param0}`).
 
 ## Programmatic spec generation
 
