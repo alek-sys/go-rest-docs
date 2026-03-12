@@ -85,13 +85,13 @@ Generate OpenAPI 3.1 specs from test-recorded HTTP interactions using middleware
 - Create: `gorestdocs_test.go`
 - Create: `example_test.go` (usage example that also serves as integration test)
 
-- [ ] Provide a package-level default registry and middleware helper: `gorestdocs.Handler(h http.Handler) http.Handler`
-- [ ] Register go test flag: `-gorestdocs.output` (file path for YAML output, empty = disabled)
-- [ ] Provide `GenerateSpec(w io.Writer, info Info)` that writes the YAML spec from the default registry
-- [ ] Provide a TestMain helper or test cleanup hook that triggers generation when the flag is set
-- [ ] Write integration test: start test server with middleware, make requests, call GenerateSpec, parse output YAML and verify structure
-- [ ] Write `example_test.go` showing typical usage pattern
-- [ ] Run `go test ./...` - must pass before task 6
+- [x] Provide a package-level default registry and middleware helper: `gorestdocs.Handler(h http.Handler) http.Handler`
+- [x] Register go test flag: `-gorestdocs.output` (file path for YAML output, empty = disabled)
+- [x] Provide `GenerateSpec(w io.Writer, info Info)` that writes the YAML spec from the default registry
+- [x] Provide a TestMain helper or test cleanup hook that triggers generation when the flag is set
+- [x] Write integration test: start test server with middleware, make requests, call GenerateSpec, parse output YAML and verify structure
+- [x] Write `example_test.go` showing typical usage pattern
+- [x] Run `go test ./...` - must pass before task 6
 
 ### Task 6: Path pattern configuration and polish
 
