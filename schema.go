@@ -2,6 +2,7 @@ package gorestdocs
 
 import (
 	"encoding/json"
+	"math"
 	"sort"
 )
 
@@ -32,7 +33,7 @@ func inferValue(v interface{}) Schema {
 	case bool:
 		return Schema{"type": "boolean"}
 	case float64:
-		if val == float64(int64(val)) {
+		if val >= math.MinInt64 && val <= math.MaxInt64 && val == float64(int64(val)) {
 			return Schema{"type": "integer"}
 		}
 		return Schema{"type": "number"}
@@ -142,9 +143,9 @@ func MergeSchemas(a, b Schema) Schema {
 		return result
 	}
 
-	// Different non-null types: can't merge meaningfully, return a
+	// Different non-null types: use oneOf to represent the union
 	if typeA != typeB {
-		return a
+		return Schema{"oneOf": []Schema{a, b}}
 	}
 
 	// Same type: merge details

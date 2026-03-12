@@ -143,7 +143,7 @@ func groupInteractions(interactions []Interaction, patterns *PathPatterns) []int
 	}
 	byStructure := make(map[groupKey][]Interaction)
 	for _, ix := range interactions {
-		segments := strings.Split(strings.Trim(ix.Path, "/"), "/")
+		segments := splitPath(ix.Path)
 		key := groupKey{method: ix.Method, segments: len(segments)}
 		byStructure[key] = append(byStructure[key], ix)
 	}
@@ -258,7 +258,7 @@ func groupByPattern(interactions []Interaction) map[string][]Interaction {
 	}
 	var paths []segmentedPath
 	for _, ix := range interactions {
-		segs := strings.Split(strings.Trim(ix.Path, "/"), "/")
+		segs := splitPath(ix.Path)
 		paths = append(paths, segmentedPath{segments: segs, ix: ix})
 	}
 

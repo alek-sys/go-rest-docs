@@ -143,6 +143,7 @@ func TestWriteSpecIfEnabled_Enabled(t *testing.T) {
 	tmpDir := t.TempDir()
 	outPath := filepath.Join(tmpDir, "openapi.yaml")
 	outputFlag = outPath
+	t.Cleanup(func() { outputFlag = "" })
 
 	err = WriteSpecIfEnabled(Info{Title: "Health API", Version: "0.1.0"})
 	if err != nil {
@@ -166,9 +167,6 @@ func TestWriteSpecIfEnabled_Enabled(t *testing.T) {
 	if _, ok := spec.Paths["/health"]; !ok {
 		t.Error("expected /health path in spec")
 	}
-
-	// Reset the flag so it doesn't interfere with other tests
-	outputFlag = ""
 }
 
 func TestWriteSpecIfEnabled_FlagOverrides(t *testing.T) {
@@ -194,6 +192,12 @@ func TestWriteSpecIfEnabled_FlagOverrides(t *testing.T) {
 	titleFlag = "Overridden Title"
 	versionFlag = "2.0.0"
 	descriptionFlag = "Overridden description"
+	t.Cleanup(func() {
+		outputFlag = ""
+		titleFlag = ""
+		versionFlag = ""
+		descriptionFlag = ""
+	})
 
 	err = WriteSpecIfEnabled(Info{Title: "Original", Version: "1.0.0"})
 	if err != nil {
@@ -219,12 +223,6 @@ func TestWriteSpecIfEnabled_FlagOverrides(t *testing.T) {
 	if spec.Info.Description != "Overridden description" {
 		t.Errorf("expected description 'Overridden description', got %s", spec.Info.Description)
 	}
-
-	// Reset flags
-	outputFlag = ""
-	titleFlag = ""
-	versionFlag = ""
-	descriptionFlag = ""
 }
 
 func TestResetDefaultRegistry(t *testing.T) {
