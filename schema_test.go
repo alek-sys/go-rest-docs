@@ -202,10 +202,35 @@ func assertType(t *testing.T, s Schema, expected string) {
 	if s == nil {
 		t.Fatalf("schema is nil, expected type %s", expected)
 	}
-	got, _ := s["type"].(string)
+	got := schemaType(s)
 	if got != expected {
 		t.Errorf("expected type %q, got %q (schema: %v)", expected, got, s)
 	}
+}
+
+// schemaType extracts the primary type from a schema, handling both
+// simple string types and OpenAPI 3.1 type arrays like ["string", "null"].
+func schemaType(s Schema) string {
+	switch t := s["type"].(type) {
+	case string:
+		return t
+	case []string:
+		for _, v := range t {
+			if v != "null" {
+				return v
+			}
+		}
+		if len(t) > 0 {
+			return t[0]
+		}
+	case []interface{}:
+		for _, v := range t {
+			if str, ok := v.(string); ok && str != "null" {
+				return str
+			}
+		}
+	}
+	return ""
 }
 
 func toSchema(v interface{}) Schema {

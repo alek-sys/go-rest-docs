@@ -237,7 +237,6 @@ func detectPathPatterns(interactions []Interaction) []interactionGroup {
 				interactions: grouped,
 			})
 		}
-		_ = method
 	}
 
 	return result
@@ -385,50 +384,75 @@ func buildOperation(g interactionGroup) *Operation {
 
 	// Build request body schema by merging across interactions
 	var requestSchema Schema
-	hasRequestBody := false
+	hasRequestBody := 0
+	totalInteractions := len(g.interactions)
+	requestContentType := "application/json"
 	for _, ix := range g.interactions {
 		if len(ix.RequestBody) > 0 {
-			hasRequestBody = true
+			hasRequestBody++
+			if ct := ix.RequestHeaders.Get("Content-Type"); ct != "" {
+				// Use the first non-empty Content-Type; strip parameters
+				if idx := strings.Index(ct, ";"); idx != -1 {
+					ct = strings.TrimSpace(ct[:idx])
+				}
+				requestContentType = ct
+			}
 			s := InferSchema(ix.RequestBody)
 			if s != nil {
 				requestSchema = MergeSchemas(requestSchema, s)
 			}
 		}
 	}
-	if hasRequestBody && requestSchema != nil {
+	if hasRequestBody > 0 && requestSchema != nil {
 		op.RequestBody = &RequestBody{
-			Required: true,
+			Required: hasRequestBody == totalInteractions,
 			Content: map[string]MediaType{
-				"application/json": {Schema: requestSchema},
+				requestContentType: {Schema: requestSchema},
 			},
 		}
 	}
 
 	// Build response schemas grouped by status code
-	responseSchemas := make(map[int]Schema)
+	type responseInfo struct {
+		schema      Schema
+		contentType string
+	}
+	responseData := make(map[int]*responseInfo)
 	for _, ix := range g.interactions {
 		status := ix.ResponseStatus
 		if len(ix.ResponseBody) > 0 {
 			s := InferSchema(ix.ResponseBody)
 			if s != nil {
-				responseSchemas[status] = MergeSchemas(responseSchemas[status], s)
+				ri := responseData[status]
+				if ri == nil {
+					ct := "application/json"
+					if h := ix.ResponseHeaders.Get("Content-Type"); h != "" {
+						if idx := strings.Index(h, ";"); idx != -1 {
+							h = strings.TrimSpace(h[:idx])
+						}
+						ct = h
+					}
+					ri = &responseInfo{contentType: ct}
+					responseData[status] = ri
+				}
+				ri.schema = MergeSchemas(ri.schema, s)
 			}
 		} else {
 			// Ensure the status code is represented even without a body
-			if _, ok := responseSchemas[status]; !ok {
-				responseSchemas[status] = nil
+			if _, ok := responseData[status]; !ok {
+				responseData[status] = nil
 			}
 		}
 	}
 
-	for status, schema := range responseSchemas {
+	for status, ri := range responseData {
 		key := fmt.Sprintf("%d", status)
 		resp := Response{
 			Description: fmt.Sprintf("Response %d", status),
 		}
-		if schema != nil {
+		if ri != nil && ri.schema != nil {
 			resp.Content = map[string]MediaType{
-				"application/json": {Schema: schema},
+				ri.contentType: {Schema: ri.schema},
 			}
 		}
 		op.Responses[key] = resp

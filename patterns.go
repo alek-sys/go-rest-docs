@@ -1,6 +1,7 @@
 package gorestdocs
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -234,17 +235,5 @@ func looksStatic(segment string) bool {
 }
 
 func paramName(idx int) string {
-	return "{param" + strings.Repeat("", 0) + itoa(idx) + "}"
-}
-
-func itoa(i int) string {
-	if i == 0 {
-		return "0"
-	}
-	var s string
-	for i > 0 {
-		s = string(rune('0'+i%10)) + s
-		i /= 10
-	}
-	return s
+	return "{param" + strconv.Itoa(idx) + "}"
 }

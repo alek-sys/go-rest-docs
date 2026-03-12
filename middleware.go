@@ -24,6 +24,7 @@ func Middleware(handler http.Handler, registry *Registry) http.Handler {
 
 		// Copy recorded response to the actual writer
 		result := rec.Result()
+		defer result.Body.Close()
 		for k, vs := range result.Header {
 			for _, v := range vs {
 				w.Header().Add(k, v)

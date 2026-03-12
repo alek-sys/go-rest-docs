@@ -79,8 +79,11 @@ func WriteSpecIfEnabled(info Info) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
-	return GenerateSpec(f, info)
+	err = GenerateSpec(f, info)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	return err
 }
 
 // ResetDefaultRegistry clears the default registry. Useful between tests.

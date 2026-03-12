@@ -110,6 +110,15 @@ func MergeSchemas(a, b Schema) Schema {
 		return makeNullable(a)
 	}
 
+	// Integer and number are compatible: number is the wider type
+	if (typeA == "integer" && typeB == "number") || (typeA == "number" && typeB == "integer") {
+		result := Schema{"type": "number"}
+		if isNullable(a) || isNullable(b) {
+			result["type"] = []string{"number", "null"}
+		}
+		return result
+	}
+
 	// Different non-null types: can't merge meaningfully, return a
 	if typeA != typeB {
 		return a
@@ -125,7 +134,7 @@ func MergeSchemas(a, b Schema) Schema {
 		// Primitive same type - preserve nullable if either is nullable
 		result := Schema{"type": typeA}
 		if isNullable(a) || isNullable(b) {
-			result["nullable"] = true
+			result["type"] = []string{typeA, "null"}
 		}
 		return result
 	}
@@ -197,7 +206,7 @@ func mergeObjects(a, b Schema) Schema {
 		"properties": merged,
 	}
 	if isNullable(a) || isNullable(b) {
-		result["nullable"] = true
+		result["type"] = []string{"object", "null"}
 	}
 	if len(required) > 0 {
 		result["required"] = required
@@ -208,7 +217,7 @@ func mergeObjects(a, b Schema) Schema {
 func mergeArrays(a, b Schema) Schema {
 	result := Schema{"type": "array"}
 	if isNullable(a) || isNullable(b) {
-		result["nullable"] = true
+		result["type"] = []string{"array", "null"}
 	}
 
 	itemsA := getItems(a)
@@ -233,17 +242,32 @@ func makeNullable(s Schema) Schema {
 	for k, v := range s {
 		result[k] = v
 	}
-	result["nullable"] = true
+	// OpenAPI 3.1 uses JSON Schema 2020-12 type arrays for nullable
+	currentType, _ := s["type"].(string)
+	if currentType != "" {
+		result["type"] = []string{currentType, "null"}
+	} else {
+		result["type"] = []string{"null"}
+	}
 	return result
 }
 
 func isNullable(s Schema) bool {
-	v, ok := s["nullable"]
-	if !ok {
-		return false
+	switch t := s["type"].(type) {
+	case []string:
+		for _, v := range t {
+			if v == "null" {
+				return true
+			}
+		}
+	case []interface{}:
+		for _, v := range t {
+			if v == "null" {
+				return true
+			}
+		}
 	}
-	b, ok := v.(bool)
-	return ok && b
+	return false
 }
 
 func getProperties(s Schema) map[string]interface{} {
