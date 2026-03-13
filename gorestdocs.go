@@ -10,6 +10,7 @@ import (
 var (
 	defaultRegistry = NewRegistry()
 	defaultPatterns = NewPathPatterns()
+	defaultDocs     = NewDocs()
 	outputFlag      string
 	titleFlag       string
 	versionFlag     string
@@ -44,9 +45,19 @@ func Handler(h http.Handler) http.Handler {
 	return Middleware(h, defaultRegistry)
 }
 
+// DefaultDocs returns the package-level default documentation store.
+func DefaultDocs() *Docs {
+	return defaultDocs
+}
+
+// ResetDefaultDocs clears all registered default documentation.
+func ResetDefaultDocs() {
+	defaultDocs.Reset()
+}
+
 // GenerateSpec writes the OpenAPI 3.1 YAML spec from the default registry to w.
 func GenerateSpec(w io.Writer, info Info) error {
-	spec := BuildSpec(defaultRegistry, info, WithPatterns(defaultPatterns))
+	spec := BuildSpec(defaultRegistry, info, WithPatterns(defaultPatterns), WithDocs(defaultDocs))
 	data, err := MarshalYAML(spec)
 	if err != nil {
 		return err

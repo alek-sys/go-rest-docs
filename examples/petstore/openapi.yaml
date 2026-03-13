@@ -6,6 +6,7 @@ info:
 paths:
     /pets:
         get:
+            summary: List all pets
             responses:
                 "200":
                     description: Response 200
@@ -15,10 +16,13 @@ paths:
                                 items:
                                     properties:
                                         id:
+                                            description: Unique pet identifier
                                             type: string
                                         name:
+                                            description: Pet's display name
                                             type: string
                                         species:
+                                            description: Animal species
                                             type: string
                                     required:
                                         - id
@@ -27,14 +31,17 @@ paths:
                                     type: object
                                 type: array
         post:
+            summary: Create a pet
             requestBody:
                 content:
                     application/json:
                         schema:
                             properties:
                                 name:
+                                    description: The pet's name
                                     type: string
                                 species:
+                                    description: The animal species
                                     type: string
                             required:
                                 - name
@@ -49,10 +56,13 @@ paths:
                             schema:
                                 properties:
                                     id:
+                                        description: The assigned pet ID
                                         type: string
                                     name:
+                                        description: The pet's name
                                         type: string
                                     species:
+                                        description: The animal species
                                         type: string
                                 required:
                                     - id
@@ -61,10 +71,12 @@ paths:
                                 type: object
     /pets/{id}:
         get:
+            summary: Get a pet by ID
             parameters:
                 - name: id
                   in: path
                   required: true
+                  description: The unique pet identifier
                   schema:
                     type: string
             responses:
@@ -75,10 +87,13 @@ paths:
                             schema:
                                 properties:
                                     id:
+                                        description: Unique pet identifier
                                         type: string
                                     name:
+                                        description: Pet's display name
                                         type: string
                                     species:
+                                        description: Animal species
                                         type: string
                                 required:
                                     - id
@@ -87,10 +102,12 @@ paths:
                                 type: object
     /search:
         get:
+            summary: Search pets
             parameters:
                 - name: q
                   in: query
                   required: false
+                  description: Search query string
                   schema:
                     type: string
             responses:
@@ -101,8 +118,10 @@ paths:
                             schema:
                                 properties:
                                     query:
+                                        description: The search query that was executed
                                         type: string
                                     results:
+                                        description: Matching pets
                                         type: array
                                 required:
                                     - query

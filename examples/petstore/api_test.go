@@ -16,6 +16,7 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	gorestdocs.ResetDefaultRegistry()
 	gorestdocs.ResetDefaultPatterns()
+	gorestdocs.ResetDefaultDocs()
 	gorestdocs.RegisterPatterns("/pets/{id}")
 
 	code := m.Run()
@@ -44,6 +45,15 @@ func TestListPets(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
+
+	gorestdocs.Document(t, resp,
+		gorestdocs.Summary("List all pets"),
+		gorestdocs.ResponseFields(
+			gorestdocs.Field("[].id", "string", "Unique pet identifier"),
+			gorestdocs.Field("[].name", "string", "Pet's display name"),
+			gorestdocs.Field("[].species", "string", "Animal species"),
+		),
+	)
 }
 
 func TestCreatePet(t *testing.T) {
@@ -63,6 +73,19 @@ func TestCreatePet(t *testing.T) {
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
 	}
+
+	gorestdocs.Document(t, resp,
+		gorestdocs.Summary("Create a pet"),
+		gorestdocs.RequestFields(
+			gorestdocs.Field("name", "string", "The pet's name"),
+			gorestdocs.Field("species", "string", "The animal species"),
+		),
+		gorestdocs.ResponseFields(
+			gorestdocs.Field("id", "string", "The assigned pet ID"),
+			gorestdocs.Field("name", "string", "The pet's name"),
+			gorestdocs.Field("species", "string", "The animal species"),
+		),
+	)
 }
 
 func TestGetPetByID(t *testing.T) {
@@ -78,6 +101,16 @@ func TestGetPetByID(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
+
+	gorestdocs.Document(t, resp,
+		gorestdocs.Summary("Get a pet by ID"),
+		gorestdocs.PathParams(gorestdocs.Param("id", "The unique pet identifier")),
+		gorestdocs.ResponseFields(
+			gorestdocs.Field("id", "string", "Unique pet identifier"),
+			gorestdocs.Field("name", "string", "Pet's display name"),
+			gorestdocs.Field("species", "string", "Animal species"),
+		),
+	)
 }
 
 func TestSearchPets(t *testing.T) {
@@ -93,4 +126,13 @@ func TestSearchPets(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
+
+	gorestdocs.Document(t, resp,
+		gorestdocs.Summary("Search pets"),
+		gorestdocs.QueryParams(gorestdocs.Param("q", "Search query string")),
+		gorestdocs.ResponseFields(
+			gorestdocs.Field("query", "string", "The search query that was executed"),
+			gorestdocs.Field("results", "array", "Matching pets"),
+		),
+	)
 }

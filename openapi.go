@@ -36,18 +36,20 @@ type PathItem struct {
 
 // Operation describes a single API operation on a path.
 type Operation struct {
-	Summary     string            `yaml:"summary,omitempty" json:"summary,omitempty"`
-	Parameters  []Parameter       `yaml:"parameters,omitempty" json:"parameters,omitempty"`
-	RequestBody *RequestBody      `yaml:"requestBody,omitempty" json:"requestBody,omitempty"`
+	Summary     string              `yaml:"summary,omitempty" json:"summary,omitempty"`
+	Description string              `yaml:"description,omitempty" json:"description,omitempty"`
+	Parameters  []Parameter         `yaml:"parameters,omitempty" json:"parameters,omitempty"`
+	RequestBody *RequestBody        `yaml:"requestBody,omitempty" json:"requestBody,omitempty"`
 	Responses   map[string]Response `yaml:"responses" json:"responses"`
 }
 
 // Parameter describes a single operation parameter.
 type Parameter struct {
-	Name     string `yaml:"name" json:"name"`
-	In       string `yaml:"in" json:"in"`
-	Required bool   `yaml:"required" json:"required"`
-	Schema   Schema `yaml:"schema" json:"schema"`
+	Name        string `yaml:"name" json:"name"`
+	In          string `yaml:"in" json:"in"`
+	Required    bool   `yaml:"required" json:"required"`
+	Description string `yaml:"description,omitempty" json:"description,omitempty"`
+	Schema      Schema `yaml:"schema" json:"schema"`
 }
 
 // RequestBody describes a request body.
@@ -99,7 +101,7 @@ func BuildSpec(registry *Registry, info Info, opts ...BuildOption) OpenAPI {
 
 	for _, g := range groups {
 		pathItem := spec.Paths[g.pattern]
-		op := buildOperation(g)
+		op := buildOperation(g, cfg.docs)
 		setOperation(&pathItem, g.method, op)
 		spec.Paths[g.pattern] = pathItem
 	}
@@ -112,12 +114,20 @@ type BuildOption func(*buildConfig)
 
 type buildConfig struct {
 	patterns *PathPatterns
+	docs     *Docs
 }
 
 // WithPatterns provides explicit path patterns to use when building the spec.
 func WithPatterns(pp *PathPatterns) BuildOption {
 	return func(c *buildConfig) {
 		c.patterns = pp
+	}
+}
+
+// WithDocs provides endpoint documentation to enrich the generated spec with descriptions.
+func WithDocs(d *Docs) BuildOption {
+	return func(c *buildConfig) {
+		c.docs = d
 	}
 }
 
@@ -389,7 +399,8 @@ func extractPathParams(pattern string) []string {
 }
 
 // buildOperation creates an Operation from a group of interactions.
-func buildOperation(g interactionGroup) *Operation {
+// If docs is non-nil, it enriches the operation with descriptions.
+func buildOperation(g interactionGroup, docs *Docs) *Operation {
 	op := &Operation{
 		Responses: make(map[string]Response),
 	}
@@ -503,6 +514,23 @@ func buildOperation(g interactionGroup) *Operation {
 			}
 		}
 		op.Responses[key] = resp
+	}
+
+	// Enrich with documentation if available.
+	// Docs are looked up by both the pattern and each concrete path in the group,
+	// since Document() stores docs keyed by the concrete request path.
+	if docs != nil {
+		if doc := docs.Lookup(g.method, g.pattern); doc != nil {
+			applyDocs(op, doc)
+		} else {
+			// Try concrete paths from interactions (Document stores by concrete path)
+			for _, ix := range g.interactions {
+				if doc := docs.Lookup(ix.Method, ix.Path); doc != nil {
+					applyDocs(op, doc)
+					break
+				}
+			}
+		}
 	}
 
 	return op

@@ -233,16 +233,6 @@ func schemaType(s Schema) string {
 	return ""
 }
 
-func toSchema(v interface{}) Schema {
-	switch s := v.(type) {
-	case Schema:
-		return s
-	case map[string]interface{}:
-		return Schema(s)
-	}
-	return nil
-}
-
 func toStringSlice(v interface{}) []string {
 	switch s := v.(type) {
 	case []string:
