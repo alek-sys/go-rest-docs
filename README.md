@@ -66,6 +66,8 @@ go test ./... -gorestdocs.output=openapi.yaml
 
 This produces a valid OpenAPI 3.1 YAML file from the recorded interactions.
 
+There is also a runnable sample project in [`examples/petstore`](./examples/petstore) that you can use to try the generation flow end to end.
+
 ## How it works
 
 1. The `Handler` middleware wraps your `http.Handler` and records every request/response pair during tests.

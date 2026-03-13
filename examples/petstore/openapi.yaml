@@ -1,0 +1,110 @@
+openapi: 3.1.0
+info:
+    title: Pet Store Example API
+    version: 1.0.0
+    description: Sample API used to test go-rest-docs OpenAPI generation.
+paths:
+    /pets:
+        get:
+            responses:
+                "200":
+                    description: Response 200
+                    content:
+                        application/json:
+                            schema:
+                                items:
+                                    properties:
+                                        id:
+                                            type: string
+                                        name:
+                                            type: string
+                                        species:
+                                            type: string
+                                    required:
+                                        - id
+                                        - name
+                                        - species
+                                    type: object
+                                type: array
+        post:
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            properties:
+                                name:
+                                    type: string
+                                species:
+                                    type: string
+                            required:
+                                - name
+                                - species
+                            type: object
+                required: true
+            responses:
+                "201":
+                    description: Response 201
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    id:
+                                        type: string
+                                    name:
+                                        type: string
+                                    species:
+                                        type: string
+                                required:
+                                    - id
+                                    - name
+                                    - species
+                                type: object
+    /pets/{id}:
+        get:
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Response 200
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    id:
+                                        type: string
+                                    name:
+                                        type: string
+                                    species:
+                                        type: string
+                                required:
+                                    - id
+                                    - name
+                                    - species
+                                type: object
+    /search:
+        get:
+            parameters:
+                - name: q
+                  in: query
+                  required: false
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: Response 200
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    query:
+                                        type: string
+                                    results:
+                                        type: array
+                                required:
+                                    - query
+                                    - results
+                                type: object
