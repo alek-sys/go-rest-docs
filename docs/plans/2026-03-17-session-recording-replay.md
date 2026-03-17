@@ -97,11 +97,11 @@ Add the ability to save HTTP interaction recordings during test runs and replay 
 
 ## Validation
 
-- [ ] Manual test: record petstore sessions via `go test ./examples/petstore -gorestdocs.session=./tmp-session`
-- [ ] Manual test: replay via `go run ./cmd/gorestdocs replay --session ./tmp-session --port 9090` and curl endpoints
-- [ ] Run full test suite: `go test ./...`
-- [ ] Run linter: `golangci-lint run`
-- [ ] Verify test coverage meets 80%+
+- [x] Manual test: record petstore sessions via `go test ./examples/petstore -gorestdocs.session=./tmp-session`
+- [x] Manual test: replay via `go run ./cmd/gorestdocs replay --session ./tmp-session --port 9090` and curl endpoints
+- [x] Run full test suite: `go test ./...`
+- [x] Run linter: `golangci-lint run`
+- [x] Verify test coverage meets 80%+
 
 ## Completion
 
