@@ -66,13 +66,13 @@ Add the ability to save HTTP interaction recordings during test runs and replay 
 **Files:**
 - Create: `replay.go`
 
-- [ ] Implement replay server that loads a session directory
-- [ ] Match incoming requests using method + path pattern matching (reuse groupByPattern / matchPattern logic from patterns.go)
-- [ ] When multiple interactions match same pattern, prefer exact path match, then first available
-- [ ] Return recorded status code, headers, and body
-- [ ] Return 404 with helpful message for unmatched requests (list available endpoints)
-- [ ] Write tests using httptest for the replay server in `replay_test.go`
-- [ ] Run `go test ./...` - must pass before task 4
+- [x] Implement replay server that loads a session directory
+- [x] Match incoming requests using method + path pattern matching (reuse groupByPattern / matchPattern logic from patterns.go)
+- [x] When multiple interactions match same pattern, prefer exact path match, then first available
+- [x] Return recorded status code, headers, and body
+- [x] Return 404 with helpful message for unmatched requests (list available endpoints)
+- [x] Write tests using httptest for the replay server in `replay_test.go`
+- [x] Run `go test ./...` - must pass before task 4
 
 ### Task 4: CLI binary
 
