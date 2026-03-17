@@ -237,6 +237,37 @@ func TestReplayServer_QueryParamMatch(t *testing.T) {
 	}
 }
 
+func TestReplayServer_NoQueryParamPrefersNoParamCandidate(t *testing.T) {
+	dir := makeTestSession(t, []Interaction{
+		{
+			Method:         "GET",
+			Path:           "/pets",
+			QueryParams:    map[string][]string{"species": {"cat"}},
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`[{"name":"Whiskers"}]`),
+		},
+		{
+			Method:         "GET",
+			Path:           "/pets",
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`[{"name":"all"}]`),
+		},
+	}, nil)
+
+	srv, err := NewReplayServer(dir)
+	if err != nil {
+		t.Fatalf("NewReplayServer: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/pets", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if body := rec.Body.String(); body != `[{"name":"all"}]` {
+		t.Errorf("no-param request: want all-pets body, got %q", body)
+	}
+}
+
 func TestReplayServer_FallbackToFirst(t *testing.T) {
 	dir := makeTestSession(t, []Interaction{
 		{

@@ -93,7 +93,7 @@ func (s *ReplayServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusOK
 	}
 	w.WriteHeader(status)
-	w.Write(interaction.ResponseBody) //nolint:errcheck
+	_, _ = w.Write(interaction.ResponseBody)
 }
 
 // pick selects the best matching interaction from candidates.
@@ -116,17 +116,26 @@ func (s *ReplayServer) pick(candidates []Interaction, r *http.Request) Interacti
 	}
 
 	// Score remaining candidates by query parameter overlap.
+	// Matching params add to the score; extra params on the candidate that the
+	// request does not have subtract from it. This ensures a no-param candidate
+	// is preferred over a param-carrying one when the request has no params.
 	best := pool[0]
-	bestScore := -1
+	bestScore := -len(pool[0].QueryParams) - 1
 	reqQuery := r.URL.Query()
 	for _, c := range pool {
 		score := 0
 		for k, vals := range c.QueryParams {
 			reqVals := reqQuery[k]
+			matched := 0
 			for i, v := range vals {
 				if i < len(reqVals) && reqVals[i] == v {
-					score++
+					matched++
 				}
+			}
+			if matched > 0 {
+				score += matched
+			} else {
+				score-- // penalize params the request doesn't have
 			}
 		}
 		if score > bestScore {
@@ -148,5 +157,5 @@ func (s *ReplayServer) notFound(w http.ResponseWriter, r *http.Request) {
 	for _, ep := range endpoints {
 		fmt.Fprintf(&sb, "  %s\n", ep)
 	}
-	w.Write([]byte(sb.String())) //nolint:errcheck
+	_, _ = w.Write([]byte(sb.String()))
 }
