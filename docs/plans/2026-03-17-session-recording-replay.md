@@ -91,9 +91,9 @@ Add the ability to save HTTP interaction recordings during test runs and replay 
 **Files:**
 - Modify: `examples/petstore/api_test.go`
 
-- [ ] Add TestMain session recording call
-- [ ] Manual test: run petstore tests with session flag, then replay and curl the endpoints
-- [ ] Verify recorded session can be replayed and returns correct responses
+- [x] Add TestMain session recording call
+- [x] Manual test: run petstore tests with session flag, then replay and curl the endpoints
+- [x] Verify recorded session can be replayed and returns correct responses
 
 ## Validation
 
