@@ -235,6 +235,64 @@ registry := gorestdocs.NewRegistry()
 handler := gorestdocs.Middleware(mux, registry)
 ```
 
+## Session recording and replay
+
+`go-rest-docs` can save all recorded HTTP interactions to disk during a test run, then replay them as a standalone mock server — useful for contract testing, demo environments, or offline development.
+
+### Record a session
+
+Add `WriteSessionIfEnabled()` to your `TestMain` alongside `WriteSpecIfEnabled`:
+
+```go
+func TestMain(m *testing.M) {
+    flag.Parse()
+    code := m.Run()
+
+    gorestdocs.WriteSpecIfEnabled(gorestdocs.Info{
+        Title:   "Pet Store API",
+        Version: "1.0.0",
+    })
+    if err := gorestdocs.WriteSessionIfEnabled(); err != nil {
+        fmt.Fprintln(os.Stderr, "session write error:", err)
+    }
+
+    os.Exit(code)
+}
+```
+
+Run your tests with the `-gorestdocs.session` flag to write a session to disk:
+
+```bash
+go test ./... -gorestdocs.session=./recorded-session
+```
+
+This creates a directory with a `session.json` manifest and one JSON file per recorded interaction:
+
+```
+recorded-session/
+  session.json
+  001_GET_pets.json
+  002_POST_pets.json
+  003_GET_pets_123.json
+```
+
+### Replay a session
+
+Use the `gorestdocs` CLI binary to start a mock server from a recorded session:
+
+```bash
+go run ./cmd/gorestdocs replay --session ./recorded-session --port 8080
+```
+
+Or install the binary:
+
+```bash
+go install github.com/alek-sys/go-rest-docs/cmd/gorestdocs@latest
+gorestdocs replay --session ./recorded-session --port 8080
+```
+
+The replay server matches requests by HTTP method and path pattern, returns the recorded status code, headers, and body, and prints a 404 with available endpoints for unmatched requests.
+
 ## CLI flags
 
 These flags are available when running `go test`:
@@ -245,6 +303,7 @@ These flags are available when running `go test`:
 | `-gorestdocs.title` | Override the API title |
 | `-gorestdocs.version` | Override the API version |
 | `-gorestdocs.description` | Override the API description |
+| `-gorestdocs.session` | Directory path to write a session recording (empty = disabled) |
 
 ## License
 

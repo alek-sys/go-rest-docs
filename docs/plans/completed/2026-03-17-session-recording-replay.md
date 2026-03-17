@@ -105,5 +105,5 @@ Add the ability to save HTTP interaction recordings during test runs and replay 
 
 ## Completion
 
-- [ ] Update README.md with session recording and replay documentation
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Update README.md with session recording and replay documentation
+- [x] Move this plan to `docs/plans/completed/`
