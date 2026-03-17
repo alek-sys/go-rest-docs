@@ -43,10 +43,10 @@ func jsonHandler(responseJSON string) http.Handler {
 		switch r.Method {
 		case http.MethodGet:
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, responseJSON)
+			_, _ = fmt.Fprint(w, responseJSON)
 		case http.MethodPost:
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprint(w, responseJSON)
+			_, _ = fmt.Fprint(w, responseJSON)
 		}
 	})
 }
@@ -62,7 +62,7 @@ func TestDocument_AllFieldsDocumented(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -90,7 +90,7 @@ func TestDocument_UndocumentedField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -117,7 +117,7 @@ func TestDocument_MissingField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -144,7 +144,7 @@ func TestDocument_TypeMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -170,7 +170,7 @@ func TestDocument_NestedFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -198,7 +198,7 @@ func TestDocument_ArrayFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -224,7 +224,7 @@ func TestDocument_NestedArrayFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -256,7 +256,7 @@ func TestDocument_RequestFieldValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -291,7 +291,7 @@ func TestDocument_RequestFieldUndocumented(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ft := newFakeT(t)
 	DocumentWith(ft, reg, docs, resp,
@@ -319,14 +319,14 @@ func TestDocument_SpecEnrichment(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == "GET" && r.URL.Path == "/pets":
-			json.NewEncoder(w).Encode([]map[string]string{
+			_ = json.NewEncoder(w).Encode([]map[string]string{
 				{"id": "1", "name": "Fido"},
 			})
 		case r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/pets/"):
-			json.NewEncoder(w).Encode(map[string]string{"id": "1", "name": "Fido"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "1", "name": "Fido"})
 		case r.Method == "POST" && r.URL.Path == "/pets":
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]string{"id": "2", "name": "Rex"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "2", "name": "Rex"})
 		}
 	})
 	srv := newTestServer(reg, handler)
@@ -334,7 +334,7 @@ func TestDocument_SpecEnrichment(t *testing.T) {
 
 	// GET /pets
 	resp, _ := http.Get(srv.URL + "/pets")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	DocumentWith(t, reg, docs, resp,
 		Summary("List all pets"),
 		ResponseFields(
@@ -345,7 +345,7 @@ func TestDocument_SpecEnrichment(t *testing.T) {
 
 	// GET /pets/1
 	resp, _ = http.Get(srv.URL + "/pets/1")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	DocumentWith(t, reg, docs, resp,
 		Summary("Get a pet by ID"),
 		PathParams(Param("id", "The unique pet identifier")),
@@ -358,7 +358,7 @@ func TestDocument_SpecEnrichment(t *testing.T) {
 	// POST /pets
 	resp, _ = http.Post(srv.URL+"/pets", "application/json",
 		strings.NewReader(`{"name":"Rex"}`))
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	DocumentWith(t, reg, docs, resp,
 		Summary("Create a pet"),
 		RequestFields(
@@ -432,7 +432,7 @@ func TestDocument_NoDocsBackwardCompatible(t *testing.T) {
 	defer srv.Close()
 
 	resp, _ := http.Get(srv.URL + "/pets")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Build spec without any docs — should work exactly as before
 	spec := BuildSpec(reg, Info{Title: "Test", Version: "1.0.0"})
@@ -464,7 +464,7 @@ func TestDocument_NoInteractionFound(t *testing.T) {
 
 func TestFlattenPaths_TopLevelObject(t *testing.T) {
 	var v interface{}
-	json.Unmarshal([]byte(`{"a":"x","b":1,"c":true,"d":null,"e":1.5}`), &v)
+	_ = json.Unmarshal([]byte(`{"a":"x","b":1,"c":true,"d":null,"e":1.5}`), &v)
 
 	result := make(map[string]string)
 	flattenPaths(v, "", result)
@@ -486,7 +486,7 @@ func TestFlattenPaths_TopLevelObject(t *testing.T) {
 
 func TestFlattenPaths_NestedObject(t *testing.T) {
 	var v interface{}
-	json.Unmarshal([]byte(`{"user":{"name":"Alice","address":{"city":"NYC"}}}`), &v)
+	_ = json.Unmarshal([]byte(`{"user":{"name":"Alice","address":{"city":"NYC"}}}`), &v)
 
 	result := make(map[string]string)
 	flattenPaths(v, "", result)
@@ -507,7 +507,7 @@ func TestFlattenPaths_NestedObject(t *testing.T) {
 
 func TestFlattenPaths_TopLevelArray(t *testing.T) {
 	var v interface{}
-	json.Unmarshal([]byte(`[{"id":"1","name":"A"},{"id":"2","name":"B"}]`), &v)
+	_ = json.Unmarshal([]byte(`[{"id":"1","name":"A"},{"id":"2","name":"B"}]`), &v)
 
 	result := make(map[string]string)
 	flattenPaths(v, "", result)
@@ -526,7 +526,7 @@ func TestFlattenPaths_TopLevelArray(t *testing.T) {
 
 func TestFlattenPaths_NestedArray(t *testing.T) {
 	var v interface{}
-	json.Unmarshal([]byte(`{"items":[{"id":"1"}],"total":5}`), &v)
+	_ = json.Unmarshal([]byte(`{"items":[{"id":"1"}],"total":5}`), &v)
 
 	result := make(map[string]string)
 	flattenPaths(v, "", result)

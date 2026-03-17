@@ -88,20 +88,53 @@ func (s *ReplayServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(k, v)
 		}
 	}
-	w.WriteHeader(interaction.ResponseStatus)
+	status := interaction.ResponseStatus
+	if status == 0 {
+		status = http.StatusOK
+	}
+	w.WriteHeader(status)
 	w.Write(interaction.ResponseBody) //nolint:errcheck
 }
 
 // pick selects the best matching interaction from candidates.
-// Prefers exact path match; falls back to the first candidate.
+// Filters to exact path matches first (if any), then returns the candidate
+// with the most matching query parameters. Falls back to the first candidate.
 func (s *ReplayServer) pick(candidates []Interaction, r *http.Request) Interaction {
-	// Exact path match first
+	// Narrow to exact path matches if any exist.
+	pool := candidates
+	var exactMatches []Interaction
 	for _, c := range candidates {
 		if c.Path == r.URL.Path {
-			return c
+			exactMatches = append(exactMatches, c)
 		}
 	}
-	return candidates[0]
+	if len(exactMatches) == 1 {
+		return exactMatches[0]
+	}
+	if len(exactMatches) > 1 {
+		pool = exactMatches
+	}
+
+	// Score remaining candidates by query parameter overlap.
+	best := pool[0]
+	bestScore := -1
+	reqQuery := r.URL.Query()
+	for _, c := range pool {
+		score := 0
+		for k, vals := range c.QueryParams {
+			reqVals := reqQuery[k]
+			for i, v := range vals {
+				if i < len(reqVals) && reqVals[i] == v {
+					score++
+				}
+			}
+		}
+		if score > bestScore {
+			bestScore = score
+			best = c
+		}
+	}
+	return best
 }
 
 // notFound writes a 404 response listing available endpoints.

@@ -44,7 +44,7 @@ func runReplay(args []string) error {
 
 	srv, err := gorestdocs.NewReplayServer(*session)
 	if err != nil {
-		return fmt.Errorf("load session: %w", err)
+		return err
 	}
 
 	endpoints := srv.Endpoints()

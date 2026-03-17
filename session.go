@@ -71,10 +71,25 @@ func mapHeader(h map[string][]string) map[string][]string {
 }
 
 // WriteSession writes all interactions from registry to dir as a session directory.
-// dir is created if it does not exist. patterns lists the registered path patterns.
+// dir is created if it does not exist. Any existing interaction files are removed
+// before writing so that a second call to WriteSession on the same directory does
+// not leave stale files from a previous run. patterns lists the registered path patterns.
 func WriteSession(dir string, registry *Registry, patterns []string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("create session dir: %w", err)
+	}
+
+	// Remove existing interaction files so a repeated WriteSession doesn't merge
+	// old and new interactions.
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || entry.Name() == "session.json" {
+				continue
+			}
+			if filepath.Ext(entry.Name()) == ".json" {
+				_ = os.Remove(filepath.Join(dir, entry.Name()))
+			}
+		}
 	}
 
 	interactions := registry.All()
@@ -131,6 +146,10 @@ func ReadSession(dir string) (SessionManifest, []Interaction, error) {
 		interactions = append(interactions, recordToInteraction(rec))
 	}
 
+	if len(interactions) != manifest.InteractionCount {
+		return manifest, interactions, fmt.Errorf("session corrupt: manifest claims %d interaction(s), found %d file(s)", manifest.InteractionCount, len(interactions))
+	}
+
 	return manifest, interactions, nil
 }
 
@@ -144,6 +163,7 @@ func writeJSON(path string, v any) error {
 	werr := enc.Encode(v)
 	cerr := f.Close()
 	if werr != nil {
+		_ = os.Remove(path)
 		return werr
 	}
 	return cerr

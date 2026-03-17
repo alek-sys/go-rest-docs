@@ -165,6 +165,13 @@ func TestReplayServer_MethodNotFound(t *testing.T) {
 	if rec.Code != 404 {
 		t.Errorf("want 404, got %d", rec.Code)
 	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "no recorded interaction") {
+		t.Errorf("expected helpful 404 message, got: %q", body)
+	}
+	if !strings.Contains(body, "GET /pets") {
+		t.Errorf("expected available endpoint in 404 message, got: %q", body)
+	}
 }
 
 func TestReplayServer_Endpoints(t *testing.T) {
@@ -180,8 +187,14 @@ func TestReplayServer_Endpoints(t *testing.T) {
 	}
 
 	endpoints := srv.Endpoints()
-	if len(endpoints) != 3 {
-		t.Errorf("want 3 endpoints, got %d: %v", len(endpoints), endpoints)
+	want := []string{"GET /pets", "GET /pets/{id}", "POST /pets"}
+	if len(endpoints) != len(want) {
+		t.Fatalf("want %d endpoints, got %d: %v", len(want), len(endpoints), endpoints)
+	}
+	for i, ep := range endpoints {
+		if ep != want[i] {
+			t.Errorf("endpoint[%d] = %q, want %q", i, ep, want[i])
+		}
 	}
 }
 
@@ -189,5 +202,100 @@ func TestNewReplayServer_InvalidDir(t *testing.T) {
 	_, err := NewReplayServer("/nonexistent/path/that/does/not/exist")
 	if err == nil {
 		t.Error("expected error for invalid session dir")
+	}
+}
+
+func TestReplayServer_QueryParamMatch(t *testing.T) {
+	dir := makeTestSession(t, []Interaction{
+		{
+			Method:         "GET",
+			Path:           "/pets",
+			QueryParams:    map[string][]string{"species": {"cat"}},
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`[{"name":"Whiskers"}]`),
+		},
+		{
+			Method:         "GET",
+			Path:           "/pets",
+			QueryParams:    map[string][]string{"species": {"dog"}},
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`[{"name":"Rex"}]`),
+		},
+	}, nil)
+
+	srv, err := NewReplayServer(dir)
+	if err != nil {
+		t.Fatalf("NewReplayServer: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/pets?species=dog", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if body := rec.Body.String(); body != `[{"name":"Rex"}]` {
+		t.Errorf("query param match: want Rex body, got %q", body)
+	}
+}
+
+func TestReplayServer_FallbackToFirst(t *testing.T) {
+	dir := makeTestSession(t, []Interaction{
+		{
+			Method:         "GET",
+			Path:           "/pets/42",
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`{"id":42}`),
+		},
+		{
+			Method:         "GET",
+			Path:           "/pets/99",
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`{"id":99}`),
+		},
+	}, []string{"/pets/{id}"})
+
+	srv, err := NewReplayServer(dir)
+	if err != nil {
+		t.Fatalf("NewReplayServer: %v", err)
+	}
+
+	// /pets/77 matches neither exact path; should fall back to first recorded
+	req := httptest.NewRequest("GET", "/pets/77", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Errorf("want 200, got %d", rec.Code)
+	}
+	if body := rec.Body.String(); body != `{"id":42}` {
+		t.Errorf("want first candidate body, got %q", body)
+	}
+}
+
+func TestReplayServer_Handler(t *testing.T) {
+	dir := makeTestSession(t, []Interaction{
+		{
+			Method:         "GET",
+			Path:           "/ping",
+			ResponseStatus: 200,
+			ResponseBody:   []byte(`pong`),
+		},
+	}, nil)
+
+	srv, err := NewReplayServer(dir)
+	if err != nil {
+		t.Fatalf("NewReplayServer: %v", err)
+	}
+
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	resp, err := ts.Client().Get(ts.URL + "/ping")
+	if err != nil {
+		t.Fatalf("GET error: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != 200 {
+		t.Errorf("want 200, got %d", resp.StatusCode)
 	}
 }

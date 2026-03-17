@@ -85,6 +85,9 @@ func TestMain(m *testing.M) {
         Title:   "Pet Store API",
         Version: "1.0.0",
     })
+    if err := gorestdocs.WriteSessionIfEnabled(); err != nil {
+        fmt.Fprintln(os.Stderr, "session write error:", err)
+    }
 
     os.Exit(code)
 }

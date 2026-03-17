@@ -246,12 +246,15 @@ func TestWriteSessionIfEnabled_Disabled(t *testing.T) {
 func TestWriteSessionIfEnabled_Enabled(t *testing.T) {
 	ResetDefaultRegistry()
 	ResetDefaultPatterns()
+	t.Cleanup(func() { ResetDefaultRegistry(); ResetDefaultPatterns() })
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/items", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`[{"id":"1"}]`))
 	})
+
+	RegisterPatterns("/items/{id}")
 
 	srv := httptest.NewServer(Handler(mux))
 	defer srv.Close()
@@ -285,5 +288,8 @@ func TestWriteSessionIfEnabled_Enabled(t *testing.T) {
 	}
 	if interactions[0].Path != "/items" {
 		t.Errorf("expected path /items, got %s", interactions[0].Path)
+	}
+	if len(manifest.Patterns) != 1 || manifest.Patterns[0] != "/items/{id}" {
+		t.Errorf("expected patterns [/items/{id}], got %v", manifest.Patterns)
 	}
 }

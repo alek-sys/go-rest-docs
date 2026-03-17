@@ -94,6 +94,12 @@ func TestWriteReadSessionRoundTrip(t *testing.T) {
 	if vals := get.QueryParams["limit"]; len(vals) == 0 || vals[0] != "10" {
 		t.Errorf("GET /pets query limit = %v, want [10]", get.QueryParams["limit"])
 	}
+	if get.RequestHeaders.Get("Accept") != "application/json" {
+		t.Errorf("GET /pets request Accept header = %q, want application/json", get.RequestHeaders.Get("Accept"))
+	}
+	if get.ResponseHeaders.Get("Content-Type") != "application/json" {
+		t.Errorf("GET /pets response Content-Type = %q, want application/json", get.ResponseHeaders.Get("Content-Type"))
+	}
 
 	post := byKey["POST:/pets"]
 	if post.ResponseStatus != 201 {
@@ -101,6 +107,9 @@ func TestWriteReadSessionRoundTrip(t *testing.T) {
 	}
 	if string(post.RequestBody) != `{"name":"Rex"}` {
 		t.Errorf("POST /pets request body = %s", post.RequestBody)
+	}
+	if post.RequestHeaders.Get("Content-Type") != "application/json" {
+		t.Errorf("POST /pets request Content-Type = %q, want application/json", post.RequestHeaders.Get("Content-Type"))
 	}
 
 	getOne := byKey["GET:/pets/1"]
@@ -185,6 +194,35 @@ func TestSanitizePath(t *testing.T) {
 		if got != c.want {
 			t.Errorf("sanitizePath(%q) = %q, want %q", c.in, got, c.want)
 		}
+	}
+}
+
+func TestReadSessionCorruptInteractionFile(t *testing.T) {
+	dir := t.TempDir()
+	registry := NewRegistry()
+	registry.Record(Interaction{Method: "GET", Path: "/ok", ResponseStatus: 200})
+
+	if err := WriteSession(dir, registry, nil); err != nil {
+		t.Fatalf("WriteSession: %v", err)
+	}
+
+	// Overwrite the interaction file with invalid JSON
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+	for _, f := range files {
+		if f.Name() != "session.json" && filepath.Ext(f.Name()) == ".json" {
+			if err := os.WriteFile(filepath.Join(dir, f.Name()), []byte("{invalid json"), 0o644); err != nil {
+				t.Fatalf("WriteFile: %v", err)
+			}
+			break
+		}
+	}
+
+	_, _, err = ReadSession(dir)
+	if err == nil {
+		t.Error("expected error reading session with corrupt interaction file, got nil")
 	}
 }
 
