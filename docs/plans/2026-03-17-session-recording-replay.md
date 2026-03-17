@@ -79,12 +79,12 @@ Add the ability to save HTTP interaction recordings during test runs and replay 
 **Files:**
 - Create: `cmd/gorestdocs/main.go`
 
-- [ ] Implement `gorestdocs replay --session <dir> --port <port>` command
-- [ ] Default port 8080, session dir required
-- [ ] Print startup banner showing loaded endpoints and port
-- [ ] Handle graceful shutdown on SIGINT/SIGTERM
-- [ ] Test that binary builds: `go build ./cmd/gorestdocs`
-- [ ] Run `go test ./...` - must pass before task 5
+- [x] Implement `gorestdocs replay --session <dir> --port <port>` command
+- [x] Default port 8080, session dir required
+- [x] Print startup banner showing loaded endpoints and port
+- [x] Handle graceful shutdown on SIGINT/SIGTERM
+- [x] Test that binary builds: `go build ./cmd/gorestdocs`
+- [x] Run `go test ./...` - must pass before task 5
 
 ### Task 5: Integration test with petstore example
 
