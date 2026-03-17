@@ -235,3 +235,55 @@ func TestResetDefaultRegistry(t *testing.T) {
 		t.Error("expected empty registry after reset")
 	}
 }
+
+func TestWriteSessionIfEnabled_Disabled(t *testing.T) {
+	sessionFlag = ""
+	if err := WriteSessionIfEnabled(); err != nil {
+		t.Fatalf("unexpected error when session flag is empty: %v", err)
+	}
+}
+
+func TestWriteSessionIfEnabled_Enabled(t *testing.T) {
+	ResetDefaultRegistry()
+	ResetDefaultPatterns()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/items", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"id":"1"}]`))
+	})
+
+	srv := httptest.NewServer(Handler(mux))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/items")
+	if err != nil {
+		t.Fatalf("GET error: %v", err)
+	}
+	_ = resp.Body.Close()
+
+	tmpDir := t.TempDir()
+	sessionFlag = tmpDir
+	t.Cleanup(func() { sessionFlag = "" })
+
+	if err := WriteSessionIfEnabled(); err != nil {
+		t.Fatalf("WriteSessionIfEnabled error: %v", err)
+	}
+
+	manifest, interactions, err := ReadSession(tmpDir)
+	if err != nil {
+		t.Fatalf("ReadSession error: %v", err)
+	}
+	if manifest.InteractionCount != 1 {
+		t.Errorf("expected 1 interaction in manifest, got %d", manifest.InteractionCount)
+	}
+	if len(interactions) != 1 {
+		t.Fatalf("expected 1 interaction, got %d", len(interactions))
+	}
+	if interactions[0].Method != "GET" {
+		t.Errorf("expected method GET, got %s", interactions[0].Method)
+	}
+	if interactions[0].Path != "/items" {
+		t.Errorf("expected path /items, got %s", interactions[0].Path)
+	}
+}

@@ -29,6 +29,10 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	if err := gorestdocs.WriteSessionIfEnabled(); err != nil {
+		panic(err)
+	}
+
 	os.Exit(code)
 }
 

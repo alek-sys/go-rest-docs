@@ -55,11 +55,11 @@ Add the ability to save HTTP interaction recordings during test runs and replay 
 **Files:**
 - Modify: `gorestdocs.go`
 
-- [ ] Add `-gorestdocs.session` flag (string, directory path)
-- [ ] Add `WriteSessionIfEnabled()` function that checks the flag and calls WriteSession
-- [ ] Update examples/petstore TestMain to also call WriteSessionIfEnabled
-- [ ] Write test verifying session output when flag is set
-- [ ] Run `go test ./...` - must pass before task 3
+- [x] Add `-gorestdocs.session` flag (string, directory path)
+- [x] Add `WriteSessionIfEnabled()` function that checks the flag and calls WriteSession
+- [x] Update examples/petstore TestMain to also call WriteSessionIfEnabled
+- [x] Write test verifying session output when flag is set
+- [x] Run `go test ./...` - must pass before task 3
 
 ### Task 3: Replay HTTP server
 
