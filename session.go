@@ -6,10 +6,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
 const sessionVersion = "1"
+
+// sessionFilePattern matches interaction files written by WriteSession (e.g. "001_GET_pets.json").
+// The method segment uses [A-Z0-9-]+ to match uppercased HTTP methods that may contain
+// digits or hyphens (e.g. M-SEARCH, X-TEST1), consistent with what WriteSession writes.
+var sessionFilePattern = regexp.MustCompile(`^\d+_[A-Z0-9-]+_.+\.json$`)
 
 // SessionManifest is written as session.json in the session directory.
 type SessionManifest struct {
@@ -80,14 +86,15 @@ func WriteSession(dir string, registry *Registry, patterns []string) error {
 	}
 
 	// Remove existing interaction files so a repeated WriteSession doesn't merge
-	// old and new interactions.
+	// old and new interactions. Only files matching the session naming pattern
+	// (NNN_METHOD_path.json) are removed to avoid deleting unrelated JSON files.
 	if entries, err := os.ReadDir(dir); err == nil {
 		for _, entry := range entries {
-			if entry.IsDir() || entry.Name() == "session.json" {
+			if entry.IsDir() || !sessionFilePattern.MatchString(entry.Name()) {
 				continue
 			}
-			if filepath.Ext(entry.Name()) == ".json" {
-				_ = os.Remove(filepath.Join(dir, entry.Name()))
+			if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove stale interaction file %s: %w", entry.Name(), err)
 			}
 		}
 	}
@@ -107,7 +114,7 @@ func WriteSession(dir string, registry *Registry, patterns []string) error {
 	}
 
 	for idx, interaction := range interactions {
-		name := fmt.Sprintf("%03d_%s_%s.json", idx+1, interaction.Method, sanitizePath(interaction.Path))
+		name := fmt.Sprintf("%03d_%s_%s.json", idx+1, sanitizeMethod(interaction.Method), sanitizePath(interaction.Path))
 		rec := interactionToRecord(interaction)
 		if err := writeJSON(filepath.Join(dir, name), rec); err != nil {
 			return fmt.Errorf("write interaction %d: %w", idx+1, err)
@@ -125,7 +132,11 @@ func ReadSession(dir string) (SessionManifest, []Interaction, error) {
 		return manifest, nil, fmt.Errorf("read manifest: %w", err)
 	}
 
-	interactions := make([]Interaction, 0, manifest.InteractionCount)
+	allocCap := manifest.InteractionCount
+	if allocCap > 10000 {
+		allocCap = 10000
+	}
+	interactions := make([]Interaction, 0, allocCap)
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -133,10 +144,7 @@ func ReadSession(dir string) (SessionManifest, []Interaction, error) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || entry.Name() == "session.json" {
-			continue
-		}
-		if filepath.Ext(entry.Name()) != ".json" {
+		if entry.IsDir() || !sessionFilePattern.MatchString(entry.Name()) {
 			continue
 		}
 		var rec sessionInteraction
@@ -176,6 +184,24 @@ func readJSON(path string, v any) error {
 	}
 	defer func() { _ = f.Close() }()
 	return json.NewDecoder(f).Decode(v)
+}
+
+// sanitizeMethod converts an HTTP method to a safe filename segment matching [A-Z0-9-]+.
+// Non-matching characters are replaced with hyphens. The actual method value is
+// preserved inside the interaction JSON, so this only affects readability of filenames.
+func sanitizeMethod(method string) string {
+	out := make([]byte, len(method))
+	for i := 0; i < len(method); i++ {
+		c := method[i]
+		if c >= 'a' && c <= 'z' {
+			out[i] = c - 32 // to upper
+		} else if (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' {
+			out[i] = c
+		} else {
+			out[i] = '-'
+		}
+	}
+	return string(out)
 }
 
 // sanitizePath converts a URL path to a safe filename segment.
