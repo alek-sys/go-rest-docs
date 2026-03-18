@@ -96,6 +96,9 @@ func WriteSpecIfEnabled(info Info) error {
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
+	if err != nil {
+		_ = os.Remove(outputFlag)
+	}
 	return err
 }
 

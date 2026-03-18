@@ -1,6 +1,7 @@
 package gorestdocs
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,16 +27,59 @@ type SessionManifest struct {
 	InteractionCount int       `json:"interaction_count"`
 }
 
+// sessionBody is a []byte that serialises as inline JSON when the content is valid JSON,
+// and as a base64-encoded JSON string otherwise (matching the default []byte behaviour).
+// This keeps session files human-readable for the common case of JSON API bodies.
+type sessionBody []byte
+
+func (b sessionBody) MarshalJSON() ([]byte, error) {
+	if len(b) == 0 {
+		return []byte("null"), nil
+	}
+	if json.Valid(b) {
+		// Compact to normalise whitespace — the file encoder may re-indent it.
+		var buf bytes.Buffer
+		if err := json.Compact(&buf, b); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
+	return json.Marshal([]byte(b))
+}
+
+func (b *sessionBody) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		*b = nil
+		return nil
+	}
+	if data[0] == '"' {
+		// Stored as a JSON string — non-JSON data encoded as base64.
+		var raw []byte
+		if err := json.Unmarshal(data, &raw); err != nil {
+			return err
+		}
+		*b = raw
+		return nil
+	}
+	// Compact to strip any indentation added by the file encoder.
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, data); err != nil {
+		return err
+	}
+	*b = sessionBody(buf.Bytes())
+	return nil
+}
+
 // sessionInteraction is the on-disk JSON representation of an Interaction.
 type sessionInteraction struct {
 	Method          string              `json:"method"`
 	Path            string              `json:"path"`
 	QueryParams     map[string][]string `json:"query_params,omitempty"`
 	RequestHeaders  map[string][]string `json:"request_headers,omitempty"`
-	RequestBody     []byte              `json:"request_body,omitempty"`
+	RequestBody     sessionBody         `json:"request_body,omitempty"`
 	ResponseStatus  int                 `json:"response_status"`
 	ResponseHeaders map[string][]string `json:"response_headers,omitempty"`
-	ResponseBody    []byte              `json:"response_body,omitempty"`
+	ResponseBody    sessionBody         `json:"response_body,omitempty"`
 }
 
 func interactionToRecord(i Interaction) sessionInteraction {
@@ -44,10 +88,10 @@ func interactionToRecord(i Interaction) sessionInteraction {
 		Path:            i.Path,
 		QueryParams:     mapHeader(i.QueryParams),
 		RequestHeaders:  mapHeader(i.RequestHeaders),
-		RequestBody:     i.RequestBody,
+		RequestBody:     sessionBody(i.RequestBody),
 		ResponseStatus:  i.ResponseStatus,
 		ResponseHeaders: mapHeader(i.ResponseHeaders),
-		ResponseBody:    i.ResponseBody,
+		ResponseBody:    sessionBody(i.ResponseBody),
 	}
 }
 
@@ -57,10 +101,10 @@ func recordToInteraction(r sessionInteraction) Interaction {
 		Path:            r.Path,
 		QueryParams:     r.QueryParams,
 		RequestHeaders:  http.Header(r.RequestHeaders),
-		RequestBody:     r.RequestBody,
+		RequestBody:     []byte(r.RequestBody),
 		ResponseStatus:  r.ResponseStatus,
 		ResponseHeaders: http.Header(r.ResponseHeaders),
-		ResponseBody:    r.ResponseBody,
+		ResponseBody:    []byte(r.ResponseBody),
 	}
 }
 
