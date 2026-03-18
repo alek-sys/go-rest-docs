@@ -238,6 +238,7 @@ func TestResetDefaultRegistry(t *testing.T) {
 
 func TestWriteSessionIfEnabled_Disabled(t *testing.T) {
 	sessionFlag = ""
+	t.Cleanup(func() { sessionFlag = "" })
 	if err := WriteSessionIfEnabled(); err != nil {
 		t.Fatalf("unexpected error when session flag is empty: %v", err)
 	}

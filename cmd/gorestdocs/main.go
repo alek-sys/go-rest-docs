@@ -58,8 +58,9 @@ func runReplay(args []string) error {
 	fmt.Printf("listening on :%d\n", *port)
 
 	httpSrv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", *port),
-		Handler: srv.Handler(),
+		Addr:              fmt.Sprintf(":%d", *port),
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 30 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
