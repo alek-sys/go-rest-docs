@@ -12,7 +12,7 @@ import (
 
 const sessionVersion = "1"
 
-// sessionFilePattern matches interaction files written by WriteSession (e.g. "001_GET_pets.json").
+// sessionFilePattern matches interaction files written by WriteSession (e.g. "000001_GET_pets.json").
 // The method segment uses [A-Z0-9-]+ to match uppercased HTTP methods that may contain
 // digits or hyphens (e.g. M-SEARCH, X-TEST1), consistent with what WriteSession writes.
 var sessionFilePattern = regexp.MustCompile(`^\d+_[A-Z0-9-]+_.+\.json$`)
@@ -87,15 +87,17 @@ func WriteSession(dir string, registry *Registry, patterns []string) error {
 
 	// Remove existing interaction files so a repeated WriteSession doesn't merge
 	// old and new interactions. Only files matching the session naming pattern
-	// (NNN_METHOD_path.json) are removed to avoid deleting unrelated JSON files.
-	if entries, err := os.ReadDir(dir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() || !sessionFilePattern.MatchString(entry.Name()) {
-				continue
-			}
-			if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("remove stale interaction file %s: %w", entry.Name(), err)
-			}
+	// (NNNNNN_METHOD_path.json) are removed to avoid deleting unrelated JSON files.
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("list session dir: %w", err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !sessionFilePattern.MatchString(entry.Name()) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove stale interaction file %s: %w", entry.Name(), err)
 		}
 	}
 
@@ -114,7 +116,7 @@ func WriteSession(dir string, registry *Registry, patterns []string) error {
 	}
 
 	for idx, interaction := range interactions {
-		name := fmt.Sprintf("%03d_%s_%s.json", idx+1, sanitizeMethod(interaction.Method), sanitizePath(interaction.Path))
+		name := fmt.Sprintf("%06d_%s_%s.json", idx+1, sanitizeMethod(interaction.Method), sanitizePath(interaction.Path))
 		rec := interactionToRecord(interaction)
 		if err := writeJSON(filepath.Join(dir, name), rec); err != nil {
 			return fmt.Errorf("write interaction %d: %w", idx+1, err)
@@ -155,7 +157,7 @@ func ReadSession(dir string) (SessionManifest, []Interaction, error) {
 	}
 
 	if len(interactions) != manifest.InteractionCount {
-		return manifest, interactions, fmt.Errorf("session corrupt: manifest claims %d interaction(s), found %d file(s)", manifest.InteractionCount, len(interactions))
+		return manifest, nil, fmt.Errorf("session corrupt: manifest claims %d interaction(s), found %d file(s)", manifest.InteractionCount, len(interactions))
 	}
 
 	return manifest, interactions, nil
@@ -174,7 +176,11 @@ func writeJSON(path string, v any) error {
 		_ = os.Remove(path)
 		return werr
 	}
-	return cerr
+	if cerr != nil {
+		_ = os.Remove(path)
+		return cerr
+	}
+	return nil
 }
 
 func readJSON(path string, v any) error {
