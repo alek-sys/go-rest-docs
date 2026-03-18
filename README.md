@@ -81,10 +81,12 @@ func TestMain(m *testing.M) {
     code := m.Run()
 
     // Write the spec after all tests complete
-    gorestdocs.WriteSpecIfEnabled(gorestdocs.Info{
+    if err := gorestdocs.WriteSpecIfEnabled(gorestdocs.Info{
         Title:   "Pet Store API",
         Version: "1.0.0",
-    })
+    }); err != nil {
+        fmt.Fprintln(os.Stderr, "spec write error:", err)
+    }
     if err := gorestdocs.WriteSessionIfEnabled(); err != nil {
         fmt.Fprintln(os.Stderr, "session write error:", err)
     }
@@ -274,9 +276,9 @@ This creates a directory with a `session.json` manifest and one JSON file per re
 ```
 recorded-session/
   session.json
-  001_GET_pets.json
-  002_POST_pets.json
-  003_GET_pets_123.json
+  000001_GET_pets.json
+  000002_POST_pets.json
+  000003_GET_pets_123.json
 ```
 
 ### Replay a session

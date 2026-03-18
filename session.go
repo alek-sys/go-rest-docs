@@ -103,6 +103,14 @@ func WriteSession(dir string, registry *Registry, patterns []string) error {
 
 	interactions := registry.All()
 
+	for idx, interaction := range interactions {
+		name := fmt.Sprintf("%06d_%s_%s.json", idx+1, sanitizeMethod(interaction.Method), sanitizePath(interaction.Path))
+		rec := interactionToRecord(interaction)
+		if err := writeJSON(filepath.Join(dir, name), rec); err != nil {
+			return fmt.Errorf("write interaction %d: %w", idx+1, err)
+		}
+	}
+
 	manifest := SessionManifest{
 		Title:            "recorded session",
 		Version:          sessionVersion,
@@ -113,14 +121,6 @@ func WriteSession(dir string, registry *Registry, patterns []string) error {
 
 	if err := writeJSON(filepath.Join(dir, "session.json"), manifest); err != nil {
 		return fmt.Errorf("write manifest: %w", err)
-	}
-
-	for idx, interaction := range interactions {
-		name := fmt.Sprintf("%06d_%s_%s.json", idx+1, sanitizeMethod(interaction.Method), sanitizePath(interaction.Path))
-		rec := interactionToRecord(interaction)
-		if err := writeJSON(filepath.Join(dir, name), rec); err != nil {
-			return fmt.Errorf("write interaction %d: %w", idx+1, err)
-		}
 	}
 
 	return nil
@@ -196,6 +196,9 @@ func readJSON(path string, v any) error {
 // Non-matching characters are replaced with hyphens. The actual method value is
 // preserved inside the interaction JSON, so this only affects readability of filenames.
 func sanitizeMethod(method string) string {
+	if method == "" {
+		return "UNKNOWN"
+	}
 	out := make([]byte, len(method))
 	for i := 0; i < len(method); i++ {
 		c := method[i]
