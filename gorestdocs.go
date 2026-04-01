@@ -15,6 +15,7 @@ var (
 	titleFlag       string
 	versionFlag     string
 	descriptionFlag string
+	sessionFlag     string
 )
 
 func init() {
@@ -22,6 +23,7 @@ func init() {
 	flag.StringVar(&titleFlag, "gorestdocs.title", "", "API title for the generated spec")
 	flag.StringVar(&versionFlag, "gorestdocs.version", "", "API version for the generated spec")
 	flag.StringVar(&descriptionFlag, "gorestdocs.description", "", "API description for the generated spec")
+	flag.StringVar(&sessionFlag, "gorestdocs.session", "", "directory path to write session recording (empty = disabled)")
 }
 
 // DefaultRegistry returns the package-level default registry used by Handler.
@@ -94,6 +96,9 @@ func WriteSpecIfEnabled(info Info) error {
 	if cerr := f.Close(); err == nil {
 		err = cerr
 	}
+	if err != nil {
+		_ = os.Remove(outputFlag)
+	}
 	return err
 }
 
@@ -105,4 +110,14 @@ func ResetDefaultRegistry() {
 // ResetDefaultPatterns clears all registered default path patterns.
 func ResetDefaultPatterns() {
 	defaultPatterns.Reset()
+}
+
+// WriteSessionIfEnabled checks the -gorestdocs.session flag and writes a session
+// recording to the specified directory if the flag is set.
+// Call this from TestMain after tests have run.
+func WriteSessionIfEnabled() error {
+	if sessionFlag == "" {
+		return nil
+	}
+	return WriteSession(sessionFlag, defaultRegistry, defaultPatterns.All())
 }
